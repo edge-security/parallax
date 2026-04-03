@@ -1,0 +1,29 @@
+[package]
+name = "parallax"
+version = "0.1.0"
+edition = "2021"
+description = "A fast, configurable security evaluation engine for AI agent systems"
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/anthropics/parallax"
+keywords = ["security", "ai", "evaluation", "agent", "policy"]
+categories = ["command-line-utilities", "web-programming"]
+
+[dependencies]
+async-trait = "0.1"
+axum = { version = "0.7", features = ["json"] }
+chrono = { version = "0.4", features = ["serde"] }
+clap = { version = "4", features = ["derive"] }
+regex = "1"
+reqwest = { version = "0.12", features = ["json"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+strip = true

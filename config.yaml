@@ -1,0 +1,92 @@
+# Parallax Security Configuration
+# ================================
+# This is the main configuration file for Parallax.
+# Edit the evaluators section to define your security rules.
+
+server:
+  host: "127.0.0.1"
+  port: 9920
+
+reporting:
+  log_file: ./logs/audit.jsonl
+  # Uncomment to enable webhook reporting:
+  # webhook_url: https://your-siem.example.com/webhook
+  # webhook_events: [block, redact]
+
+evaluators:
+  # ── Secret Scanner ─────────────────────────────────────────────
+  # Redacts common secret patterns from tool arguments and results.
+  - name: secrets-scanner
+    type: regex
+    stages: [tool.before, tool.after]
+    rules:
+      - label: "AWS Access Key"
+        pattern: "AKIA[0-9A-Z]{16}"
+        action: redact
+
+      - label: "AWS Secret Key"
+        pattern: "(?i)aws_secret_access_key\\s*[=:]\\s*[A-Za-z0-9/+=]{40}"
+        action: redact
+
+      - label: "GitHub Personal Access Token"
+        pattern: "ghp_[A-Za-z0-9]{36}"
+        action: redact
+
+      - label: "GitHub Fine-Grained Token"
+        pattern: "github_pat_[A-Za-z0-9_]{82}"
+        action: redact
+
+      - label: "Generic API Key"
+        pattern: "(?i)(api[_-]?key|apikey|secret[_-]?key)\\s*[=:]\\s*['\"]?[A-Za-z0-9]{20,}"
+        action: redact
+
+      - label: "Private Key Block"
+        pattern: "-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----"
+        action: block
+
+  # ── Dangerous Commands ──────────────────────────────────────────
+  # Blocks dangerous shell commands before they execute.
+  - name: dangerous-commands
+    type: regex
+    stages: [tool.before]
+    rules:
+      - label: "Recursive delete root"
+        pattern: "rm\\s+-[a-zA-Z]*r[a-zA-Z]*f[a-zA-Z]*\\s+/"
+        action: block
+        fields: [tool_args.command]
+
+      - label: "Format disk"
+        pattern: "mkfs\\."
+        action: block
+        fields: [tool_args.command]
+
+      - label: "Disk overwrite"
+        pattern: "dd\\s+.*of=/dev/"
+        action: block
+        fields: [tool_args.command]
+
+      - label: "Chmod 777 recursive"
+        pattern: "chmod\\s+-[a-zA-Z]*R[a-zA-Z]*\\s+777"
+        action: detect
+        fields: [tool_args.command]
+
+      - label: "Curl pipe to shell"
+        pattern: "curl\\s+.*\\|\\s*(bash|sh|zsh)"
+        action: block
+        fields: [tool_args.command]
+
+  # ── SQL Injection Keywords ──────────────────────────────────────
+  # Detects common SQL injection patterns in messages and tool args.
+  - name: sql-keywords
+    type: pattern
+    stages: [message.before, tool.before]
+    rules:
+      - label: "SQL destructive keywords"
+        keywords:
+          - "DROP TABLE"
+          - "DROP DATABASE"
+          - "DELETE FROM"
+          - "TRUNCATE TABLE"
+          - "'; --"
+          - "1=1"
+        action: detect
