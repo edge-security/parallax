@@ -1,0 +1,24 @@
+# CEL policy rules
+#
+# Expressions are evaluated against flattened event context.
+# Field names use underscores instead of dots (e.g. tool_args_command).
+
+- label: block-rm-rf
+  expr: 'tool_name == "exec" && tool_args_command.matches("rm\\s+-r")'
+  action: block
+  reason: Recursive file deletion is not allowed
+
+- label: block-chmod-777
+  expr: 'tool_name == "exec" && tool_args_command.contains("chmod 777")'
+  action: block
+  reason: Setting world-writable permissions is not allowed
+
+- label: warn-sudo
+  expr: 'tool_name == "exec" && tool_args_command.startsWith("sudo")'
+  action: detect
+  reason: Elevated privilege execution detected
+
+- label: block-env-dump
+  expr: 'tool_name == "exec" && (tool_args_command == "env" || tool_args_command == "printenv" || tool_args_command.contains("export"))'
+  action: detect
+  reason: Environment variable dump may expose secrets

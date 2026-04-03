@@ -1,0 +1,72 @@
+title: Suspicious file write outside workspace
+id: oc-001
+status: experimental
+description: Detects tool calls that write files to sensitive system directories
+logsource:
+  product: openclaw
+  service: tool
+detection:
+  selection:
+    tool_name: write_file
+  target_paths:
+    tool_args.path|startswith:
+      - "/etc/"
+      - "/usr/"
+      - "/var/"
+      - "/root/"
+  home_ssh:
+    tool_args.path|contains: ".ssh/"
+  condition: selection and (target_paths or home_ssh)
+level: high
+---
+title: Shell command with network exfiltration indicators
+id: oc-002
+status: experimental
+description: Detects exec tool calls that combine data access with network transfer
+logsource:
+  product: openclaw
+  service: tool
+detection:
+  selection:
+    tool_name: exec
+  network_tools:
+    tool_args.command|contains:
+      - "curl"
+      - "wget"
+      - "nc "
+      - "ncat"
+      - "netcat"
+  data_pipes:
+    tool_args.command|contains:
+      - "|"
+      - ">"
+      - "base64"
+  condition: selection and network_tools and data_pipes
+level: critical
+---
+title: Database credential access via tool
+id: oc-003
+status: experimental
+description: Detects tool calls that read database configuration or credential files
+logsource:
+  product: openclaw
+  service: tool
+detection:
+  selection:
+    tool_name:
+      - read_file
+      - exec
+  sensitive_paths:
+    tool_args.path|contains:
+      - ".env"
+      - "credentials"
+      - "database.yml"
+      - "secrets.yaml"
+      - "wp-config.php"
+  sensitive_commands:
+    tool_args.command|contains:
+      - "cat .env"
+      - "cat credentials"
+      - "printenv"
+  condition: selection and (sensitive_paths or sensitive_commands)
+level: high

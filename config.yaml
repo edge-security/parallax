@@ -90,3 +90,33 @@ evaluators:
           - "'; --"
           - "1=1"
         action: detect
+
+  # ── Sigma Rule Engine ──────────────────────────────────────────
+  # Loads Sigma-format YAML rules for threat detection.
+  - name: sigma-threats
+    type: sigma
+    stages: [tool.before, tool.after]
+    rules_dir: ./rules/sigma
+
+  # ── CEL Policy Engine ──────────────────────────────────────────
+  # Lightweight expression-based policies using CEL-like syntax.
+  - name: cel-policies
+    type: cel
+    stages: [tool.before]
+    rules_file: ./rules/cel/policies.yaml
+
+  # ── SQL Aggregate Detection ────────────────────────────────────
+  # Stateful evaluator using in-memory SQLite for rate/aggregate rules.
+  # Uncomment to enable:
+  # - name: rate-limits
+  #   type: sql
+  #   stages: [tool.before, tool.after]
+  #   rules:
+  #     - label: "High tool call rate"
+  #       query: >
+  #         SELECT COUNT(*) as cnt FROM events
+  #         WHERE session_id = :session_id
+  #         AND timestamp > :now - 60
+  #       condition: "cnt > 50"
+  #       action: detect
+  #       reason: "Unusually high tool call rate (>50/min)"

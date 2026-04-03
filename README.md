@@ -68,6 +68,41 @@ evaluators:
 
 **pattern** -- Keyword substring matching. Case-insensitive by default. Use when you don't need regex.
 
+**sigma** -- Sigma-format YAML threat detection rules. Supports field modifiers (`startswith`, `contains`, `endswith`, `re`), complex conditions with `and`/`or`/`not`, and `1 of`/`all of` patterns. Load rules from a directory:
+
+```yaml
+- name: sigma-threats
+  type: sigma
+  stages: [tool.before, tool.after]
+  rules_dir: ./rules/sigma
+```
+
+**cel** -- Lightweight CEL-like expression engine for policy rules. Supports `==`, `!=`, `&&`, `||`, `.contains()`, `.startsWith()`, `.matches()`:
+
+```yaml
+- name: cel-policies
+  type: cel
+  stages: [tool.before]
+  rules_file: ./rules/cel/policies.yaml
+```
+
+**sql** -- In-memory SQLite evaluator for stateful, aggregate detection. Use for rate limiting, frequency analysis, and temporal patterns:
+
+```yaml
+- name: rate-limits
+  type: sql
+  stages: [tool.before, tool.after]
+  rules:
+    - label: "High tool call rate"
+      query: >
+        SELECT COUNT(*) as cnt FROM events
+        WHERE session_id = :session_id
+        AND timestamp > :now - 60
+      condition: "cnt > 50"
+      action: detect
+      reason: "Unusually high tool call rate"
+```
+
 Evaluators run in cost order (cheapest first) and short-circuit on block.
 
 ## Actions
@@ -122,6 +157,48 @@ Response:
 { "status": "ok", "mode": "server", "evaluators": 3, "version": "0.1.0" }
 ```
 
+## Proxy Mode
+
+Parallax can act as a reverse proxy between your agent and the Anthropic API, intercepting and evaluating requests at every stage:
+
+```bash
+parallax serve --mode proxy -c config.yaml
+```
+
+```
+  Agent ──> POST /anthropic/v1/messages ──> Parallax Proxy ──> Anthropic API
+                                                │
+                                    ┌───────────┼───────────┐
+                                    │           │           │
+                              message.before  tool.after  tool.before
+                                    │           │           │
+                               Block request  Block on    Intercept tool_use
+                               before sending result     in SSE stream
+```
+
+The proxy:
+- Evaluates user messages before forwarding (`message.before`)
+- Evaluates tool results in the request (`tool.after`)
+- Buffers and evaluates tool_use blocks in streaming responses (`tool.before`)
+- Replaces blocked tool_use blocks with text explanations
+- Rewrites `stop_reason` from `tool_use` to `end_turn` when all tools are blocked
+- Passes through non-messages endpoints transparently
+
+### OpenClaw proxy setup
+
+Auto-configure OpenClaw to route traffic through the proxy:
+
+```bash
+# Configure OpenClaw to use the proxy
+parallax setup-openclaw --host 127.0.0.1 --port 9920 --model claude-sonnet-4-20250514
+
+# Start the proxy
+parallax serve --mode proxy -c config.yaml
+
+# Revert to direct Anthropic access
+parallax revert-openclaw
+```
+
 ## Reporting
 
 **Audit log** -- Append-only JSONL file with every evaluation. Set `reporting.log_file`.
@@ -130,9 +207,15 @@ Response:
 
 ## Integrating with OpenClaw
 
-Parallax is designed as the security layer for [OpenClaw](https://github.com/anthropics/openclaw) agent systems. Integration works over HTTP -- any agent that can make a POST request can use Parallax.
+Parallax is designed as the security layer for [OpenClaw](https://github.com/anthropics/openclaw) agent systems. There are two integration methods:
 
-### How it works
+### 1. Proxy mode (recommended)
+
+Use `parallax serve --mode proxy` and `parallax setup-openclaw` to route all API traffic through Parallax. No plugin code needed.
+
+### 2. Shim plugin
+
+For finer control, use a lightweight shim plugin that POSTs to `/evaluate` at each lifecycle hook:
 
 ```
                     ┌──────────┐
@@ -155,92 +238,12 @@ Parallax is designed as the security layer for [OpenClaw](https://github.com/ant
                   action: block / allow / redact / detect
 ```
 
-OpenClaw fires lifecycle hooks at three points. A lightweight shim plugin intercepts these hooks and forwards them to Parallax for evaluation. The shim receives the verdict and either blocks the tool call or lets it proceed.
-
-### Shim plugin contract
-
-The shim is a thin client that lives in your agent's plugin system. It needs to:
-
-1. **Intercept three hooks**: `before_tool_call`, `after_tool_call`, `message_received`
-2. **POST to Parallax** at `http://127.0.0.1:9920/evaluate` with the event payload
-3. **Respect the verdict**: block on `{ "blocked": true }`, allow otherwise
-4. **Fail open**: on timeout or error, default to allow
-
 Environment variables for the shim:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PARALLAX_URL` | `http://127.0.0.1:9920/evaluate` | Evaluation endpoint |
 | `PARALLAX_TIMEOUT` | `3000` | Request timeout in ms |
-
-### Hook behavior by stage
-
-| Hook | Can block? | Typical use |
-|------|-----------|-------------|
-| `before_tool_call` | Yes | Block dangerous commands, redact secrets in args |
-| `after_tool_call` | No (fire-and-forget) | Detect secrets in tool output, audit logging |
-| `message_received` | No (fire-and-forget) | Scan user messages for injection patterns |
-
-Only `before_tool_call` is synchronous and can prevent execution. The other two hooks are observational -- they report to Parallax but don't wait for a blocking decision.
-
-### Example shim (TypeScript)
-
-```typescript
-import type { OpenClawPlugin } from "openclaw";
-
-const PARALLAX_URL = process.env.PARALLAX_URL || "http://127.0.0.1:9920/evaluate";
-const TIMEOUT = parseInt(process.env.PARALLAX_TIMEOUT || "3000");
-
-async function evaluate(payload: Record<string, unknown>) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT);
-  try {
-    const res = await fetch(PARALLAX_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    });
-    return await res.json();
-  } catch {
-    return { action: "allow", blocked: false, reasons: [] };
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-export default function plugin(api: OpenClawPlugin) {
-  api.on("before_tool_call", 10, async (event) => {
-    const verdict = await evaluate({
-      stage: "tool.before",
-      session_id: event.sessionId,
-      tool_name: event.toolName,
-      tool_args: event.toolArgs,
-    });
-    return verdict.blocked ? { block: true, blockReason: verdict.reasons.join("; ") } : {};
-  });
-
-  api.on("after_tool_call", 10, async (event) => {
-    evaluate({
-      stage: "tool.after",
-      session_id: event.sessionId,
-      tool_name: event.toolName,
-      tool_args: event.toolArgs,
-      tool_result: event.toolResult,
-    });
-  });
-
-  api.on("message_received", 10, async (event) => {
-    evaluate({
-      stage: "message.before",
-      session_id: event.sessionId,
-      message_text: event.text,
-      channel: event.channel,
-      user_id: event.userId,
-    });
-  });
-}
-```
 
 ### Generic integration
 
@@ -266,25 +269,33 @@ parallax serve [OPTIONS]
   -c, --config <PATH>       Config file path
       --host <HOST>         Override host
       --port <PORT>         Override port
+      --mode <MODE>         server or proxy [default: server]
       --log-level <LEVEL>   Log level [default: info]
+
+parallax setup-openclaw [OPTIONS]
+
+      --host <HOST>         Proxy host [default: 127.0.0.1]
+      --port <PORT>         Proxy port [default: 9920]
+      --model <MODEL>       Claude model ID [default: claude-sonnet-4-20250514]
+
+parallax revert-openclaw [OPTIONS]
+
+      --model <MODEL>       Claude model ID [default: claude-sonnet-4-20250514]
 ```
 
 ## Roadmap
 
 Planned extensions (contributions welcome):
 
-- **Proxy mode** -- Reverse proxy between OpenClaw and the Anthropic API with full blocking at all stages, including streamed tool_use interception
-- **`parallax setup-openclaw`** -- CLI command to auto-configure OpenClaw to route traffic through proxy mode
-- **Sigma evaluator** -- SIEM-compatible YAML threat detection rules
-- **CEL evaluator** -- Common Expression Language for policy expressions
-- **SQL evaluator** -- In-memory event store for rate limiting and temporal patterns
 - **Real-time dashboard** -- SSE-powered web UI for live event monitoring
+- **Webhook integrations** -- Slack, PagerDuty, and SIEM connectors
+- **Rule hot-reload** -- Watch config file for changes without restart
 
 ## Development
 
 ```bash
 cargo build            # Dev build
-cargo test             # Run tests (26 tests)
+cargo test             # Run tests (45 tests)
 cargo build --release  # Optimized release build
 RUST_LOG=debug cargo run -- serve -c config.yaml
 ```
