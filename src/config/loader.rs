@@ -5,8 +5,11 @@ use tracing::{error, info, warn};
 
 use crate::config::schema::{EvaluatorConfig, PlatformConfig};
 use crate::engine::chain::EvaluatorChain;
+use crate::evaluators::cel_eval::CELEvaluator;
 use crate::evaluators::pattern_eval::PatternEvaluator;
 use crate::evaluators::regex_eval::RegexEvaluator;
+use crate::evaluators::sigma_eval::SigmaEvaluator;
+use crate::evaluators::sql_eval::SQLEvaluator;
 
 const DEFAULT_CONFIG_PATHS: &[&str] = &[
     "parallax.yaml",
@@ -167,6 +170,9 @@ pub fn build_chain(config: &PlatformConfig) -> EvaluatorChain {
         let evaluator: Option<Box<dyn crate::evaluators::Evaluator>> = match ec.eval_type.as_str() {
             "regex" => Some(Box::new(RegexEvaluator::new(ec.name.clone(), &value))),
             "pattern" => Some(Box::new(PatternEvaluator::new(ec.name.clone(), &value))),
+            "sigma" => Some(Box::new(SigmaEvaluator::new(ec.name.clone(), &value))),
+            "cel" => Some(Box::new(CELEvaluator::new(ec.name.clone(), &value))),
+            "sql" => Some(Box::new(SQLEvaluator::new(ec.name.clone(), &value))),
             unknown => {
                 error!(name = %ec.name, eval_type = unknown, "Unknown evaluator type, skipping");
                 None

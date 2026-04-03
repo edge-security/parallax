@@ -1,5 +1,8 @@
+pub mod cel_eval;
 pub mod pattern_eval;
 pub mod regex_eval;
+pub mod sigma_eval;
+pub mod sql_eval;
 
 use std::collections::HashSet;
 
