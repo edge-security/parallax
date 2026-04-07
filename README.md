@@ -90,6 +90,8 @@ See [config.yaml](config.yaml) for a complete working example.
 
 Evaluators run in cost order (cheapest first) and short-circuit on block.
 
+Parallax ships with **51 rules across 13 threat categories** -- see [RULES.md](RULES.md) for the full reference, including prompt injection, reconnaissance, privilege escalation, PII leakage, supply chain, and more.
+
 ## Decisions
 
 | Action | Behavior |
