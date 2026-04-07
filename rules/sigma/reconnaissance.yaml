@@ -1,0 +1,103 @@
+title: Sensitive file read - credentials and keys
+id: recon-001
+status: experimental
+description: Detects tool calls reading credential files, SSH keys, or secret stores
+logsource:
+  product: parallax
+  service: tool
+detection:
+  selection:
+    tool_name:
+      - read_file
+      - exec
+  ssh_keys:
+    tool_args.path|contains:
+      - ".ssh/id_"
+      - ".ssh/authorized_keys"
+      - ".ssh/known_hosts"
+      - ".ssh/config"
+  credential_files:
+    tool_args.path|endswith:
+      - ".pem"
+      - ".key"
+      - ".p12"
+      - ".pfx"
+      - ".keystore"
+  aws_credentials:
+    tool_args.path|contains:
+      - ".aws/credentials"
+      - ".aws/config"
+  gcp_credentials:
+    tool_args.path|contains:
+      - "service-account"
+      - "application_default_credentials"
+  condition: selection and (ssh_keys or credential_files or aws_credentials or gcp_credentials)
+level: high
+---
+title: System file reconnaissance
+id: recon-002
+status: experimental
+description: Detects reads of system files commonly targeted for information gathering
+logsource:
+  product: parallax
+  service: tool
+detection:
+  selection:
+    tool_name:
+      - read_file
+      - exec
+  system_files:
+    tool_args.path|contains:
+      - "/etc/passwd"
+      - "/etc/shadow"
+      - "/etc/hosts"
+      - "/etc/group"
+      - "/proc/self/"
+  commands:
+    tool_args.command|contains:
+      - "cat /etc/passwd"
+      - "cat /etc/shadow"
+      - "/proc/self/environ"
+  condition: selection and (system_files or commands)
+level: high
+---
+title: Cloud metadata endpoint access
+id: recon-003
+status: experimental
+description: Detects access to cloud instance metadata services used for credential theft
+logsource:
+  product: parallax
+  service: tool
+detection:
+  selection:
+    tool_name: exec
+  metadata_endpoints:
+    tool_args.command|contains:
+      - "169.254.169.254"
+      - "metadata.google.internal"
+      - "metadata.azure.com"
+  condition: selection and metadata_endpoints
+level: critical
+---
+title: Container and orchestration config access
+id: recon-004
+status: experimental
+description: Detects reads of Kubernetes, Docker, and container configuration files
+logsource:
+  product: parallax
+  service: tool
+detection:
+  selection:
+    tool_name:
+      - read_file
+      - exec
+  kube_config:
+    tool_args.path|contains:
+      - ".kube/config"
+      - "kubeconfig"
+  docker_config:
+    tool_args.path|contains:
+      - ".docker/config.json"
+      - "/var/run/docker.sock"
+  condition: selection and (kube_config or docker_config)
+level: high

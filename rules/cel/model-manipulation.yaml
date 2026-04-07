@@ -1,0 +1,24 @@
+# Model Manipulation Detection
+#
+# CEL expressions detecting attempts to tamper with model parameters
+# or redefine tool behavior. Fields use underscores.
+
+- label: block-system-prompt-injection
+  expr: 'tool_args_command.contains("system_prompt") || tool_args_command.contains("system_message")'
+  action: block
+  reason: Modifying system prompt via tool calls is not allowed
+
+- label: block-temperature-override
+  expr: 'tool_args_command.contains("temperature") && tool_args_command.matches("temperature.*(=|:)\\s*[0-9]")'
+  action: detect
+  reason: Attempt to modify model temperature parameter detected
+
+- label: block-tool-definitions-tampering
+  expr: 'tool_args_command.contains("tool_definitions") || tool_args_command.contains("\"tools\"")'
+  action: detect
+  reason: Attempt to modify tool definitions detected
+
+- label: block-max-tokens-override
+  expr: 'tool_args_command.contains("max_tokens") && tool_args_command.matches("max_tokens.*(=|:)\\s*[0-9]")'
+  action: detect
+  reason: Attempt to modify max_tokens parameter detected

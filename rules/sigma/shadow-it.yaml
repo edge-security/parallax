@@ -1,0 +1,87 @@
+title: Container runtime operations
+id: shadow-001
+status: experimental
+description: Detects agent creating, running, or building containers without approval
+logsource:
+  product: parallax
+  service: tool
+detection:
+  selection:
+    tool_name: exec
+  container_ops:
+    tool_args.command|contains:
+      - "docker run"
+      - "docker build"
+      - "docker exec"
+      - "docker compose up"
+      - "docker-compose up"
+      - "podman run"
+      - "podman build"
+  condition: selection and container_ops
+level: high
+---
+title: Kubernetes cluster operations
+id: shadow-002
+status: experimental
+description: Detects agent deploying or modifying Kubernetes resources
+logsource:
+  product: parallax
+  service: tool
+detection:
+  selection:
+    tool_name: exec
+  k8s_ops:
+    tool_args.command|contains:
+      - "kubectl apply"
+      - "kubectl create"
+      - "kubectl delete"
+      - "kubectl patch"
+      - "kubectl scale"
+      - "helm install"
+      - "helm upgrade"
+  condition: selection and k8s_ops
+level: high
+---
+title: Cloud infrastructure provisioning
+id: shadow-003
+status: experimental
+description: Detects agent provisioning or modifying cloud infrastructure
+logsource:
+  product: parallax
+  service: tool
+detection:
+  selection:
+    tool_name: exec
+  terraform:
+    tool_args.command|contains:
+      - "terraform apply"
+      - "terraform destroy"
+      - "pulumi up"
+      - "pulumi destroy"
+  cloud_cli:
+    tool_args.command|re:
+      - "^aws\\s"
+      - "^gcloud\\s"
+      - "^az\\s"
+  condition: selection and (terraform or cloud_cli)
+level: high
+---
+title: User account management
+id: shadow-004
+status: experimental
+description: Detects agent creating or modifying system user accounts
+logsource:
+  product: parallax
+  service: tool
+detection:
+  selection:
+    tool_name: exec
+  user_mgmt:
+    tool_args.command|contains:
+      - "useradd"
+      - "adduser"
+      - "usermod"
+      - "groupadd"
+      - "passwd "
+  condition: selection and user_mgmt
+level: high

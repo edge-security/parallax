@@ -44,6 +44,50 @@ evaluators:
         pattern: "-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----"
         action: block
 
+  # ── PII Leakage Scanner ────────────────────────────────────────
+  # Redacts personally identifiable information from tool outputs.
+  - name: pii-scanner
+    type: regex
+    stages: [tool.after]
+    rules:
+      - label: "Social Security Number"
+        pattern: "\\b\\d{3}-\\d{2}-\\d{4}\\b"
+        action: redact
+
+      - label: "Credit Card - Visa"
+        pattern: "\\b4\\d{3}[- ]?\\d{4}[- ]?\\d{4}[- ]?\\d{4}\\b"
+        action: redact
+
+      - label: "Credit Card - Mastercard"
+        pattern: "\\b5[1-5]\\d{2}[- ]?\\d{4}[- ]?\\d{4}[- ]?\\d{4}\\b"
+        action: redact
+
+      - label: "Credit Card - Amex"
+        pattern: "\\b3[47]\\d{2}[- ]?\\d{6}[- ]?\\d{5}\\b"
+        action: redact
+
+      - label: "US Phone Number"
+        pattern: "\\b(?:\\+1[- ]?)?\\(?\\d{3}\\)?[- ]?\\d{3}[- ]?\\d{4}\\b"
+        action: redact
+
+  # ── Data Exfiltration Patterns ─────────────────────────────────
+  # Detects encoded data and exfiltration indicators.
+  - name: data-exfiltration
+    type: regex
+    stages: [tool.before, tool.after]
+    rules:
+      - label: "Base64-encoded secret indicator"
+        pattern: "(?i)(password|secret|token|key)[=:]\\s*[A-Za-z0-9+/]{40,}={0,2}"
+        action: detect
+
+      - label: "Long hex-encoded data block"
+        pattern: "\\b[0-9a-fA-F]{64,}\\b"
+        action: detect
+
+      - label: "Data URI with base64"
+        pattern: "data:[a-z/]+;base64,[A-Za-z0-9+/]{100,}"
+        action: detect
+
   # ── Dangerous Commands ──────────────────────────────────────────
   # Blocks dangerous shell commands before they execute.
   - name: dangerous-commands
@@ -91,11 +135,45 @@ evaluators:
           - "1=1"
         action: detect
 
+  # ── Supply Chain ───────────────────────────────────────────────
+  # Blocks untrusted package installs and dependency confusion.
+  - name: supply-chain
+    type: pattern
+    stages: [tool.before]
+    rules:
+      - label: "Pip install from custom index"
+        keywords:
+          - "pip install --index-url"
+          - "pip install --extra-index-url"
+          - "pip install -i http"
+        action: block
+
+      - label: "Npm install from custom registry"
+        keywords:
+          - "npm install --registry"
+          - "npm config set registry"
+          - "yarn config set registry"
+        action: block
+
+      - label: "Wget pipe to shell"
+        keywords:
+          - "wget -O - | bash"
+          - "wget -O - | sh"
+          - "wget -q -O - | bash"
+        action: block
+
+      - label: "Gem install from custom source"
+        keywords:
+          - "gem install --source http"
+          - "gem sources --add http"
+        action: block
+
   # ── Sigma Rule Engine ──────────────────────────────────────────
   # Loads Sigma-format YAML rules for threat detection.
+  # Includes: dangerous tools, prompt injection, reconnaissance, shadow IT
   - name: sigma-threats
     type: sigma
-    stages: [tool.before, tool.after]
+    stages: [message.before, tool.before, tool.after]
     rules_dir: ./rules/sigma
 
   # ── CEL Policy Engine ──────────────────────────────────────────
@@ -105,18 +183,39 @@ evaluators:
     stages: [tool.before]
     rules_file: ./rules/cel/policies.yaml
 
+  # ── CEL Privilege Escalation ───────────────────────────────────
+  - name: cel-privilege-escalation
+    type: cel
+    stages: [tool.before]
+    rules_file: ./rules/cel/privilege-escalation.yaml
+
+  # ── CEL Model Manipulation ────────────────────────────────────
+  - name: cel-model-manipulation
+    type: cel
+    stages: [tool.before]
+    rules_file: ./rules/cel/model-manipulation.yaml
+
   # ── SQL Aggregate Detection ────────────────────────────────────
   # Stateful evaluator using in-memory SQLite for rate/aggregate rules.
-  # Uncomment to enable:
-  # - name: rate-limits
-  #   type: sql
-  #   stages: [tool.before, tool.after]
-  #   rules:
-  #     - label: "High tool call rate"
-  #       query: >
-  #         SELECT COUNT(*) as cnt FROM events
-  #         WHERE session_id = :session_id
-  #         AND timestamp > :now - 60
-  #       condition: "cnt > 50"
-  #       action: detect
-  #       reason: "Unusually high tool call rate (>50/min)"
+  - name: rate-limits
+    type: sql
+    stages: [tool.before, tool.after]
+    rules:
+      - label: "High tool call rate"
+        query: >
+          SELECT COUNT(*) as cnt FROM events
+          WHERE session_id = :session_id
+          AND timestamp > :now - 60
+        condition: "cnt > 50"
+        action: detect
+        reason: "Unusually high tool call rate (>50/min)"
+
+      - label: "Repeated tool abuse"
+        query: >
+          SELECT COUNT(*) as cnt FROM events
+          WHERE session_id = :session_id
+          AND tool_name = :tool_name
+          AND timestamp > :now - 300
+        condition: "cnt > 20"
+        action: detect
+        reason: "Same tool called >20 times in 5 minutes"
