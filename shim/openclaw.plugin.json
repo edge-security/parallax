@@ -1,0 +1,22 @@
+{
+  "id": "parallax-security",
+  "name": "Parallax Security",
+  "description": "Security decision engine for OpenClaw agents — forwards events to Parallax for evaluation",
+  "version": "0.2.0",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "evaluationUrl": {
+        "type": "string",
+        "description": "URL of the Parallax evaluation endpoint",
+        "default": "http://127.0.0.1:9920/evaluate"
+      },
+      "timeoutMs": {
+        "type": "number",
+        "description": "Timeout for evaluation requests in milliseconds",
+        "default": 3000
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "parallax-security",
+  "version": "0.2.0",
+  "description": "OpenClaw plugin that forwards lifecycle events to the Parallax security engine",
+  "main": "src/index.ts",
+  "openclaw": {
+    "extensions": ["./src/index.ts"]
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.2.0"
+  }
+}

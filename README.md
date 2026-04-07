@@ -181,7 +181,16 @@ parallax revert-openclaw
 
 ### Shim plugin
 
-For finer control, use a shim plugin that POSTs to `/evaluate` at each lifecycle hook:
+For server mode, install the shim plugin that forwards OpenClaw lifecycle events to Parallax:
+
+```bash
+# Install and enable the plugin
+openclaw plugins install --link ./shim
+openclaw plugins enable parallax-security
+
+# Start Parallax in server mode
+parallax serve -c config.yaml
+```
 
 | Variable | Default | Description |
 |----------|---------|-------------|
