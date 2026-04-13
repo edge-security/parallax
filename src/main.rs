@@ -226,7 +226,7 @@ fn setup_openclaw(host: &str, port: u16, model: &str) {
     // Step 4: Disable shim plugin
     let result = run_openclaw_cmd_result(&[
         "config", "set",
-        "plugins.entries.openclaw-security.enabled",
+        "plugins.entries.parallax-security.enabled",
         "false",
     ]);
     if result.is_err() {
@@ -268,7 +268,7 @@ fn revert_openclaw(model: &str) {
     // Re-enable shim plugin
     run_openclaw_cmd(&[
         "config", "set",
-        "plugins.entries.openclaw-security.enabled",
+        "plugins.entries.parallax-security.enabled",
         "true",
     ]);
 

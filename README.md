@@ -16,12 +16,22 @@ Parallax evaluates every AI agent event -- messages, tool calls, and results -- 
 Every event passes through a chain of evaluators. Each evaluator checks the event against its rules and returns a verdict. The chain short-circuits on the first `block` -- no wasted work.
 
 ## Quick Start
+To configure it with OpenClaw:
 
 ```bash
+git clone https://github.com/edge-security/parallax
+cd parallax/
+sudo snap install --classic rustup
+rustup default stable
+sudo apt install pkg-config libssl-dev
 cargo build --release
+# -> for plugin deployment
+openclaw plugins install --link ./shim
+openclaw plugins enable parallax-security
+openclaw gateway restart
 ./target/release/parallax serve -c config.yaml
 ```
-
+To test functionality of parallax API server:
 ```bash
 curl http://127.0.0.1:9920/health
 
@@ -166,7 +176,7 @@ The proxy:
 
 Parallax is designed as the security layer for [OpenClaw](https://openclaw.ai) agent systems.
 
-### Proxy setup (recommended)
+### Proxy setup (Under development)
 
 ```bash
 # 1. Configure OpenClaw to route through Parallax
@@ -179,7 +189,7 @@ parallax serve --mode proxy -c config.yaml
 parallax revert-openclaw
 ```
 
-### Shim plugin
+### Shim plugin (Recommended)
 
 For server mode, install the shim plugin that forwards OpenClaw lifecycle events to Parallax:
 
