@@ -1,0 +1,49 @@
+# Parallax Minimal Configuration
+# ===============================
+# A starter config with essential rules only.
+# For the full rule set, see config.yaml.
+
+server:
+  host: "127.0.0.1"
+  port: 9920
+
+# Uncomment to configure proxy mode upstream provider:
+# proxy:
+#   provider: anthropic    # anthropic, openai, gemini, or custom
+#   upstream_url: ~        # override for custom providers
+
+reporting:
+  log_file: ./logs/audit.jsonl
+
+evaluators:
+  - name: secrets-scanner
+    type: regex
+    stages: [tool.before, tool.after]
+    rules:
+      - label: "AWS Access Key"
+        pattern: "AKIA[0-9A-Z]{16}"
+        action: redact
+      - label: "GitHub PAT"
+        pattern: "ghp_[A-Za-z0-9]{36}"
+        action: redact
+      - label: "Private Key Block"
+        pattern: "-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----"
+        action: block
+
+  - name: dangerous-commands
+    type: regex
+    stages: [tool.before]
+    rules:
+      - label: "Recursive delete"
+        pattern: "rm\\s+-[a-zA-Z]*r[a-zA-Z]*f[a-zA-Z]*\\s+/"
+        action: block
+        fields: [tool_args.command]
+      - label: "Curl pipe to shell"
+        pattern: "curl\\s+.*\\|\\s*(bash|sh|zsh)"
+        action: block
+        fields: [tool_args.command]
+
+  - name: sigma-threats
+    type: sigma
+    stages: [message.before, tool.before, tool.after]
+    rules_dir: ./rules/sigma

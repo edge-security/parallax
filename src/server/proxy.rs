@@ -16,13 +16,12 @@ use crate::engine::result::AggregatedResult;
 use crate::reporting::audit::AuditLogger;
 use crate::reporting::webhook::WebhookReporter;
 
-const UPSTREAM_BASE: &str = "https://api.anthropic.com";
-
 pub struct ProxyState {
     pub chain: Arc<EvaluatorChain>,
     pub audit: Option<Arc<AuditLogger>>,
     pub webhook: Option<Arc<WebhookReporter>>,
     pub client: Client,
+    pub upstream_base: String,
 }
 
 /// Build the proxy router.
@@ -395,7 +394,7 @@ async fn proxy_messages(
 
     // Forward to Anthropic
     let upstream_headers = build_upstream_headers(&headers);
-    let upstream_url = format!("{}/v1/messages", UPSTREAM_BASE);
+    let upstream_url = format!("{}/v1/messages", state.upstream_base);
 
     if is_streaming {
         return proxy_streaming(&state, &body, upstream_headers, &upstream_url).await;
@@ -683,7 +682,7 @@ async fn proxy_passthrough(
         }
     }
 
-    let url = format!("{}/v1/{}", UPSTREAM_BASE, path);
+    let url = format!("{}/v1/{}", state.upstream_base, path);
     match state
         .client
         .post(&url)

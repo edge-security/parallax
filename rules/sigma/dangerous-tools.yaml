@@ -1,9 +1,9 @@
 title: Suspicious file write outside workspace
-id: oc-001
+id: dt-001
 status: experimental
 description: Detects tool calls that write files to sensitive system directories
 logsource:
-  product: openclaw
+  product: parallax
   service: tool
 detection:
   selection:
@@ -20,11 +20,11 @@ detection:
 level: high
 ---
 title: Shell command with network exfiltration indicators
-id: oc-002
+id: dt-002
 status: experimental
 description: Detects exec tool calls that combine data access with network transfer
 logsource:
-  product: openclaw
+  product: parallax
   service: tool
 detection:
   selection:
@@ -45,11 +45,11 @@ detection:
 level: critical
 ---
 title: Database credential access via tool
-id: oc-003
+id: dt-003
 status: experimental
 description: Detects tool calls that read database configuration or credential files
 logsource:
-  product: openclaw
+  product: parallax
   service: tool
 detection:
   selection:

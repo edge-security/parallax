@@ -1,21 +1,36 @@
 # Parallax Security Configuration
 # ================================
-# This is the main configuration file for Parallax.
-# Edit the evaluators section to define your security rules.
+# Full configuration with all built-in evaluators enabled.
+# For a minimal starter, see config.minimal.yaml.
+#
+# Sections:
+#   server     — HTTP server bind address
+#   proxy      — Upstream LLM provider for proxy mode
+#   reporting  — Audit log and webhook configuration
+#   evaluators — Security rules (regex, pattern, sigma, cel, sql)
 
 server:
   host: "127.0.0.1"
   port: 9920
 
+# Proxy mode upstream configuration.
+# Used when running: parallax serve --mode proxy -c config.yaml
+# Supported providers: anthropic (default), openai, gemini, custom
+proxy:
+  provider: anthropic
+  # Uncomment to override the default upstream URL:
+  # upstream_url: https://api.openai.com
+
 reporting:
   log_file: ./logs/audit.jsonl
-  # Uncomment to enable webhook reporting:
+  # Uncomment to enable webhook reporting to SIEM, Slack, or PagerDuty:
   # webhook_url: https://your-siem.example.com/webhook
   # webhook_events: [block, redact]
 
 evaluators:
   # ── Secret Scanner ─────────────────────────────────────────────
   # Redacts common secret patterns from tool arguments and results.
+  # Use "regex" type for compiled pattern matching with field targeting.
   - name: secrets-scanner
     type: regex
     stages: [tool.before, tool.after]
@@ -169,7 +184,8 @@ evaluators:
         action: block
 
   # ── Sigma Rule Engine ──────────────────────────────────────────
-  # Loads Sigma-format YAML rules for threat detection.
+  # Loads Sigma-format YAML rules from a directory. Each .yaml file
+  # is auto-loaded. Best for complex multi-field detection logic.
   # Includes: dangerous tools, prompt injection, reconnaissance, shadow IT
   - name: sigma-threats
     type: sigma
@@ -178,6 +194,7 @@ evaluators:
 
   # ── CEL Policy Engine ──────────────────────────────────────────
   # Lightweight expression-based policies using CEL-like syntax.
+  # Best for boolean logic over flattened fields (dots become underscores).
   - name: cel-policies
     type: cel
     stages: [tool.before]
@@ -197,6 +214,7 @@ evaluators:
 
   # ── SQL Aggregate Detection ────────────────────────────────────
   # Stateful evaluator using in-memory SQLite for rate/aggregate rules.
+  # Best for temporal patterns: rate limiting, frequency analysis, anomaly detection.
   - name: rate-limits
     type: sql
     stages: [tool.before, tool.after]
