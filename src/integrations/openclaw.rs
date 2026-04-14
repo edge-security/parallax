@@ -32,7 +32,7 @@ pub fn setup(host: &str, port: u16, model: &str) {
         "false",
     ]);
     if result.is_err() {
-        println!("  NOTE: Could not disable shim plugin — if it's loaded, events may be double-counted.");
+        println!("  NOTE: Could not disable server-mode integration — if it's loaded, events may be double-counted.");
     }
 
     println!();

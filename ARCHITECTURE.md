@@ -127,7 +127,7 @@ parallax/
 │   ├── reporting/           # Audit logging and webhook reporting
 │   └── server/              # HTTP server (api.rs) and proxy (proxy.rs)
 ├── integrations/
-│   └── openclaw/            # OpenClaw plugin (TypeScript shim)
+│   └── openclaw/            # OpenClaw server-mode integration (TypeScript)
 ├── rules/
 │   ├── cel/                 # CEL policy files
 │   ├── regex/               # Regex rule files

@@ -1,6 +1,6 @@
 # OpenClaw Integration
 
-Parallax includes first-class integration with [OpenClaw](https://openclaw.ai) agent systems. There are two ways to connect them: proxy mode (transparent interception) and plugin mode (explicit lifecycle hooks).
+Parallax includes first-class integration with [OpenClaw](https://openclaw.ai) agent systems. There are two ways to connect them: proxy mode (transparent interception) and server mode (explicit lifecycle hooks).
 
 ## Option 1: Proxy Mode
 
@@ -16,7 +16,7 @@ parallax setup --framework openclaw
 parallax serve --mode proxy -c config.yaml
 ```
 
-This registers a custom provider in OpenClaw's config that points at the Parallax proxy, copies the Anthropic API key, and disables the shim plugin to prevent double-evaluation.
+This registers a custom provider in OpenClaw's config that points at the Parallax proxy, copies the Anthropic API key, and disables the server-mode integration to prevent double-evaluation.
 
 ### Revert
 
@@ -24,7 +24,7 @@ This registers a custom provider in OpenClaw's config that points at the Paralla
 parallax revert --framework openclaw
 ```
 
-This restores OpenClaw to use the Anthropic API directly, removes the custom provider, and re-enables the shim plugin.
+This restores OpenClaw to use the Anthropic API directly, removes the custom provider, and re-enables the server-mode integration.
 
 ### What the proxy evaluates
 
@@ -34,14 +34,14 @@ This restores OpenClaw to use the Anthropic API directly, removes the custom pro
 | `tool.after` | Tool results in request | Scans for secrets, PII in tool output |
 | `tool.before` | Tool calls in response stream | Blocks dangerous commands before execution |
 
-## Option 2: Plugin Mode (Server Mode)
+## Option 2: Server Mode
 
-Plugin mode installs a lightweight TypeScript shim that forwards OpenClaw lifecycle events to the Parallax evaluation server. OpenClaw enforces the verdicts.
+Server mode installs a lightweight TypeScript integration that forwards OpenClaw lifecycle events to the Parallax evaluation server. OpenClaw enforces the verdicts.
 
 ### Setup
 
 ```bash
-# Install the plugin from the integrations directory
+# Install the integration from the integrations directory
 openclaw plugins install --link ./integrations/openclaw
 openclaw plugins enable parallax-security
 
@@ -56,7 +56,7 @@ parallax serve -c config.yaml
 | `PARALLAX_URL` | `http://127.0.0.1:9920/evaluate` | Evaluation endpoint |
 | `PARALLAX_TIMEOUT` | `3000` | Request timeout in ms |
 
-### What the plugin evaluates
+### What server mode evaluates
 
 | Hook | Stage | Behavior |
 |------|-------|----------|
@@ -66,12 +66,12 @@ parallax serve -c config.yaml
 
 ## Which mode to choose
 
-| Consideration | Proxy Mode | Plugin Mode |
+| Consideration | Proxy Mode | Server Mode |
 |---------------|-----------|-------------|
-| Integration effort | Zero code changes | Install plugin |
+| Integration effort | Zero code changes | Install integration |
 | Blocking capability | Full (all stages) | Only `tool.before` blocks |
-| Streaming support | Yes (buffers SSE tool_use blocks) | N/A (server mode) |
+| Streaming support | Yes (buffers SSE tool_use blocks) | N/A |
 | Latency overhead | Adds proxy hop | Adds HTTP call per event |
-| Works without Parallax running | No (requests fail) | Yes (plugin fails open) |
+| Works without Parallax running | No (requests fail) | Yes (fails open) |
 
-For production deployments, proxy mode provides the strongest security guarantees because it can block at every stage. Plugin mode is better for gradual rollout since it fails open if Parallax is unavailable.
+For production deployments, proxy mode provides the strongest security guarantees because it can block at every stage. Server mode is better for gradual rollout since it fails open if Parallax is unavailable.

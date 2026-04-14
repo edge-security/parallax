@@ -25,14 +25,30 @@ Every event passes through a chain of evaluators. Each evaluator checks the even
 
 ## Quick Start
 
+### Build from source
+
 ```bash
 git clone https://github.com/agentic-defense/parallax
 cd parallax
+sudo snap install --classic rustup
+rustup default stable
+sudo apt install pkg-config libssl-dev
 cargo build --release
+```
+
+### Configure with OpenClaw
+
+```bash
+# Deploy the OpenClaw integration (server mode)
+openclaw plugins install --link ./integrations/openclaw
+openclaw plugins enable parallax-security
+openclaw gateway restart
+
+# Start the Parallax server
 ./target/release/parallax serve -c config.yaml
 ```
 
-Test the evaluation endpoint:
+### Test the evaluation endpoint
 
 ```bash
 curl http://127.0.0.1:9920/health
@@ -43,7 +59,7 @@ curl -X POST http://127.0.0.1:9920/evaluate \
 # → {"action":"block","blocked":true,"reasons":["Regex match: Recursive delete"]}
 ```
 
-That's it. Your agent calls `POST /evaluate` before and after each tool execution and acts on the decision.
+Your agent calls `POST /evaluate` before and after each tool execution and acts on the decision.
 
 ## Supported Threat Categories
 
@@ -225,7 +241,7 @@ parallax serve --mode proxy -c config.yaml
 parallax revert --framework openclaw
 ```
 
-**Plugin (server mode):**
+**Server mode:**
 
 ```bash
 openclaw plugins install --link ./integrations/openclaw
@@ -263,7 +279,7 @@ Supported frameworks: `openclaw` (more coming in v0.3).
 
 ### v0.3 -- Multi-Framework & Multi-Provider Support
 - Generic `parallax setup --framework <name>` for LangChain, CrewAI, OpenAI Agents SDK
-- Plugin directory structure for framework integrations
+- Integration directory structure for framework integrations
 - OpenAI-compatible proxy mode (`/v1/chat/completions`) covering OpenAI, Azure OpenAI, and local models (Ollama, LM Studio)
 - Configurable upstream provider in `config.yaml`
 
