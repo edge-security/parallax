@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// Evaluation stage — when in the agent lifecycle this event occurs.
+/// Evaluation stage — the point in the agent lifecycle where this event occurs.
+///
+/// Evaluators declare which stages they subscribe to; the chain only runs
+/// an evaluator when its stages contain the current context's stage.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Stage {
     #[serde(rename = "message.before")]
@@ -32,15 +35,20 @@ impl std::fmt::Display for Stage {
 }
 
 /// Normalized event context passed to every evaluator.
+///
+/// The server or proxy layer builds this from an incoming request,
+/// and the evaluator chain reads it without mutation.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EvalContext {
     pub stage: Stage,
     #[serde(default)]
     pub session_id: String,
+    /// Logical channel (e.g. Slack channel, CLI session).
     #[serde(default)]
     pub channel: String,
     #[serde(default)]
     pub user_id: String,
+    /// Unix epoch seconds (with sub-second fraction).
     #[serde(default = "now")]
     pub timestamp: f64,
     #[serde(default)]
@@ -53,8 +61,10 @@ pub struct EvalContext {
     pub tool_result: Option<serde_json::Value>,
     #[serde(default)]
     pub model: Option<String>,
+    /// LLM request parameters (temperature, max_tokens, etc.).
     #[serde(default)]
     pub params: HashMap<String, serde_json::Value>,
+    /// Opaque pass-through fields from the caller.
     #[serde(default)]
     pub raw: HashMap<String, serde_json::Value>,
 }

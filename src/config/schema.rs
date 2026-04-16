@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-/// Top-level platform configuration.
+/// Top-level platform configuration, typically loaded from `parallax.yaml`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlatformConfig {
     #[serde(default)]
@@ -9,13 +9,15 @@ pub struct PlatformConfig {
     pub proxy: ProxyConfig,
     #[serde(default)]
     pub reporting: ReportingConfig,
+    /// Inline evaluator definitions.
     #[serde(default)]
     pub evaluators: Vec<EvaluatorConfig>,
+    /// Optional directory to load additional evaluator YAML files from.
     #[serde(default)]
     pub evaluators_dir: Option<String>,
 }
 
-/// HTTP server configuration.
+/// HTTP server bind address. Defaults to `127.0.0.1:9920`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServerConfig {
     #[serde(default = "default_host")]
@@ -62,6 +64,9 @@ impl Default for ProxyConfig {
 }
 
 impl ProxyConfig {
+    /// Resolve the base URL for the upstream LLM provider.
+    ///
+    /// Returns the explicit `upstream_url` if set, otherwise infers from `provider`.
     pub fn upstream_base_url(&self) -> &str {
         if let Some(ref url) = self.upstream_url {
             return url.as_str();
@@ -81,10 +86,13 @@ fn default_provider() -> String {
 /// Reporting / observability configuration.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ReportingConfig {
+    /// Path to append-only JSON-lines audit log. Disabled when `None`.
     #[serde(default)]
     pub log_file: Option<String>,
+    /// URL to POST evaluation events to. Disabled when `None`.
     #[serde(default)]
     pub webhook_url: Option<String>,
+    /// Action types that trigger a webhook (`"block"`, `"redact"`, etc.).
     #[serde(default = "default_webhook_events")]
     pub webhook_events: Vec<String>,
 }

@@ -51,6 +51,13 @@ pub struct SQLEvaluator {
 }
 
 impl SQLEvaluator {
+    /// Create a new SQL evaluator from its YAML config block.
+    ///
+    /// Initializes an in-memory SQLite database and creates the `events` table.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the in-memory SQLite database cannot be created (system-level failure).
     pub fn new(name: String, config: &serde_yaml::Value) -> Self {
         let map = config.as_mapping().cloned().unwrap_or_default();
 
@@ -314,9 +321,13 @@ impl Evaluator for SQLEvaluator {
     }
 }
 
-// SQLEvaluator uses Mutex internally, so it's safe to send across threads
-// even though rusqlite::Connection is not Send.
+/// # Safety
+///
+/// `rusqlite::Connection` is `!Send`, but [`SQLEvaluator`] wraps it in a
+/// `Mutex` and never exposes the raw `Connection` — all access is serialized,
+/// making cross-thread use sound.
 unsafe impl Send for SQLEvaluator {}
+/// See [`Send`] impl above.
 unsafe impl Sync for SQLEvaluator {}
 
 #[cfg(test)]

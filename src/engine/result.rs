@@ -2,12 +2,19 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Enforcement action to take on an event.
+///
+/// Actions have a priority: `Block` > `Redact` > `Detect` > `Allow`.
+/// When multiple evaluators fire, the highest-priority action wins.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Action {
+    /// No threat detected; pass through.
     Allow,
+    /// Hard block — the request is rejected.
     Block,
+    /// Suspicious but not blocked; logged for review.
     Detect,
+    /// Sensitive content masked before forwarding.
     Redact,
 }
 
@@ -35,15 +42,20 @@ impl std::fmt::Display for Action {
     }
 }
 
-/// Result from a single evaluator.
+/// Result from a single evaluator run.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EvalResult {
+    /// Name of the evaluator that produced this result.
     pub evaluator: String,
     pub action: Action,
+    /// 0.0–1.0 confidence score (1.0 = certain match).
     pub confidence: f64,
+    /// Human-readable explanation of why this action was chosen.
     pub reason: String,
+    /// Content with sensitive parts masked (only set when `action == Redact`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub redacted: Option<String>,
+    /// Evaluator-specific metadata (e.g. matched rule, elapsed_ms).
     #[serde(default)]
     pub metadata: HashMap<String, serde_json::Value>,
 }
@@ -62,10 +74,15 @@ impl EvalResult {
 }
 
 /// Aggregated result from the full evaluator chain.
+///
+/// Contains the winning [`Action`] plus per-evaluator details.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AggregatedResult {
+    /// Highest-priority action across all evaluators.
     pub action: Action,
+    /// Individual results, in execution order.
     pub results: Vec<EvalResult>,
+    /// Final redacted content, if any evaluator triggered `Redact`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub redacted: Option<String>,
 }
