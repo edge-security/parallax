@@ -5,9 +5,9 @@ edition = "2021"
 description = "Runtime security engine for AI agents — blocks prompt injection, data exfiltration, and dangerous tool calls across any framework and LLM"
 license = "Apache-2.0"
 readme = "README.md"
-repository = "https://github.com/agentic-defense/parallax"
+repository = "https://github.com/agent-defense/parallax"
 keywords = ["security", "ai", "evaluation", "agent", "policy"]
-categories = ["command-line-utilities", "web-programming"]
+categories = ["security", "command-line-utilities", "artificial-intelligence"]
 
 [dependencies]
 async-trait = "0.1"
