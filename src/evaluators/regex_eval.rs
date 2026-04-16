@@ -169,6 +169,10 @@ pub struct RegexEvaluator {
 }
 
 impl RegexEvaluator {
+    /// Create a new regex evaluator from its YAML config block.
+    ///
+    /// Invalid patterns are logged and skipped — the evaluator still runs
+    /// with whichever rules compiled successfully.
     pub fn new(name: String, config: &serde_yaml::Value) -> Self {
         let map = config.as_mapping().cloned().unwrap_or_default();
 

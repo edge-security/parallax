@@ -1,7 +1,7 @@
 # Parallax Security Configuration
 # ================================
 # Full configuration with all built-in evaluators enabled.
-# For a minimal starter, see config.minimal.yaml.
+# For a minimal starter, see docs/config.minimal.yaml.
 #
 # Sections:
 #   server     — HTTP server bind address

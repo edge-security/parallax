@@ -384,6 +384,10 @@ pub struct CELEvaluator {
 }
 
 impl CELEvaluator {
+    /// Create a new CEL evaluator from its YAML config block.
+    ///
+    /// Expressions are parsed at construction time; invalid expressions are
+    /// logged and skipped.
     pub fn new(name: String, config: &serde_yaml::Value) -> Self {
         let map = config.as_mapping().cloned().unwrap_or_default();
 

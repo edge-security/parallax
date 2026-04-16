@@ -21,7 +21,11 @@ fn eval_type_cost(eval_type: &str) -> u32 {
     }
 }
 
-/// Ordered chain of evaluators. Executes in cost order and short-circuits on block.
+/// Ordered chain of evaluators.
+///
+/// Evaluators run in ascending cost order (regex before LLM) and
+/// short-circuit on `Block` — remaining evaluators are skipped.
+/// Panicking evaluators are caught and converted to `Detect` results.
 pub struct EvaluatorChain {
     evaluators: Vec<Box<dyn Evaluator>>,
 }

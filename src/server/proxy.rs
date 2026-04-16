@@ -16,15 +16,22 @@ use crate::engine::result::AggregatedResult;
 use crate::reporting::audit::AuditLogger;
 use crate::reporting::webhook::WebhookReporter;
 
+/// Shared state for the LLM reverse-proxy mode.
 pub struct ProxyState {
     pub chain: Arc<EvaluatorChain>,
     pub audit: Option<Arc<AuditLogger>>,
     pub webhook: Option<Arc<WebhookReporter>>,
     pub client: Client,
+    /// Base URL of the upstream LLM provider (e.g. `https://api.anthropic.com`).
     pub upstream_base: String,
 }
 
-/// Build the proxy router.
+/// Build the proxy router with security evaluation middleware.
+///
+/// Routes:
+/// - `GET /health` — proxy health check
+/// - `POST /anthropic/v1/messages` — intercepted messages endpoint
+/// - `ANY /anthropic/v1/*` — passthrough for other Anthropic API calls
 pub fn proxy_router(state: Arc<ProxyState>) -> Router {
     Router::new()
         .route("/health", get(proxy_health))

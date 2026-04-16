@@ -133,8 +133,10 @@ parallax/
 │   ├── regex/               # Regex rule files
 │   └── sigma/               # Sigma detection rules
 ├── config.yaml              # Full configuration example
-├── config.minimal.yaml      # Minimal starter configuration
 ├── Cargo.toml
-├── RULES.md                 # Security rules reference
-└── ARCHITECTURE.md          # This file
+└── docs/
+    ├── ARCHITECTURE.md      # This file
+    ├── RULES.md             # Security rules reference
+    ├── config.minimal.yaml  # Minimal starter configuration
+    └── integrations/        # Framework integration guides
 ```

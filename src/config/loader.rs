@@ -109,6 +109,13 @@ fn load_evaluator_dir(dir: &Path, config_root: &Path) -> Vec<EvaluatorConfig> {
 }
 
 /// Load and validate the platform configuration from a YAML file.
+///
+/// Merges inline evaluator definitions with any found in the `evaluators_dir`.
+/// Duplicate evaluator names are resolved last-definition-wins.
+///
+/// # Errors
+///
+/// Returns an error string if the file cannot be found, read, or parsed.
 pub fn load_config(path: Option<&str>) -> Result<PlatformConfig, String> {
     let config_path = find_config(path)?;
     let config_root = config_path.parent().unwrap_or(Path::new("."));
@@ -155,7 +162,10 @@ pub fn load_config(path: Option<&str>) -> Result<PlatformConfig, String> {
     Ok(config)
 }
 
-/// Build an evaluator chain from the loaded configuration.
+/// Build an [`EvaluatorChain`] from the loaded configuration.
+///
+/// Disabled evaluators (`enabled: false`) are skipped. Unknown evaluator
+/// types are logged and ignored.
 pub fn build_chain(config: &PlatformConfig) -> EvaluatorChain {
     let mut chain = EvaluatorChain::new();
 

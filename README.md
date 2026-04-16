@@ -79,7 +79,7 @@ Your agent calls `POST /evaluate` before and after each tool execution and acts 
 | Resource abuse | SQL | Rate limiting, repeated tool abuse |
 | Sensitive file writes | Sigma | Writes to /etc, /usr, .ssh |
 
-See [RULES.md](RULES.md) for the full reference.
+See [docs/RULES.md](docs/RULES.md) for the full reference.
 
 ## Configuration
 
@@ -126,7 +126,7 @@ evaluators:
         fields: [tool_args.command]       # Only check this field
 ```
 
-See [config.yaml](config.yaml) for a complete working example, or [config.minimal.yaml](config.minimal.yaml) for a minimal starter.
+See [config.yaml](config.yaml) for a complete working example, or [docs/config.minimal.yaml](docs/config.minimal.yaml) for a minimal starter.
 
 ## Evaluator Types
 
@@ -303,7 +303,7 @@ Supported frameworks: `openclaw` (more coming in v0.3).
 
 ## Architecture
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for details on the evaluator chain, short-circuit logic, and cost-ordered execution.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details on the evaluator chain, short-circuit logic, and cost-ordered execution.
 
 ## Development
 

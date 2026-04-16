@@ -14,11 +14,12 @@ use crate::engine::context::{EvalContext, Stage};
 use crate::reporting::audit::AuditLogger;
 use crate::reporting::webhook::WebhookReporter;
 
-/// Shared application state.
+/// Shared application state for the evaluation API server.
 pub struct AppState {
     pub chain: EvaluatorChain,
     pub audit: Option<AuditLogger>,
     pub webhook: Option<WebhookReporter>,
+    /// `"server"` or `"proxy"` — included in `/health` responses.
     pub mode: String,
 }
 

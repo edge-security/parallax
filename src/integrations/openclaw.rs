@@ -1,5 +1,9 @@
 use std::path::PathBuf;
 
+/// Configure OpenClaw to route Anthropic API traffic through the Parallax proxy.
+///
+/// Registers a new `anthropic-secured` provider, sets it as the default model,
+/// and copies the existing Anthropic API key to the new auth profile.
 pub fn setup(host: &str, port: u16, model: &str) {
     let provider_name = "anthropic-secured";
     let base_url = format!("http://{}:{}/anthropic", host, port);
@@ -45,6 +49,7 @@ pub fn setup(host: &str, port: u16, model: &str) {
     println!("  parallax serve --mode proxy -c <config.yaml>");
 }
 
+/// Revert OpenClaw to use the Anthropic API directly, removing the proxy provider.
 pub fn revert(model: &str) {
     let model_id = format!("anthropic/{}", model);
 

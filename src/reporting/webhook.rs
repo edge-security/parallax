@@ -8,8 +8,13 @@ use crate::engine::context::EvalContext;
 use crate::engine::result::AggregatedResult;
 
 /// Async webhook reporter — POSTs evaluation events to an external endpoint.
+///
+/// Only fires for actions matching the configured `events` set
+/// (defaults to `block` and `redact`). HTTP errors are logged but never
+/// block the evaluation pipeline.
 pub struct WebhookReporter {
     url: String,
+    /// Action types that trigger a webhook notification.
     pub events: HashSet<String>,
     client: Client,
 }

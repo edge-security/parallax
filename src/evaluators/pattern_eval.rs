@@ -26,6 +26,7 @@ pub struct PatternEvaluator {
 }
 
 impl PatternEvaluator {
+    /// Create a new pattern evaluator from its YAML config block.
     pub fn new(name: String, config: &serde_yaml::Value) -> Self {
         let map = config.as_mapping().cloned().unwrap_or_default();
 

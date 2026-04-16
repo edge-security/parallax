@@ -1,7 +1,7 @@
 # Parallax Minimal Configuration
 # ===============================
 # A starter config with essential rules only.
-# For the full rule set, see config.yaml.
+# For the full rule set, see ../config.yaml.
 
 server:
   host: "127.0.0.1"

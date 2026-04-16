@@ -306,6 +306,9 @@ pub struct SigmaEvaluator {
 }
 
 impl SigmaEvaluator {
+    /// Create a new Sigma evaluator from its YAML config block.
+    ///
+    /// Rules are loaded from both inline `rules` and the optional `rules_dir`.
     pub fn new(name: String, config: &serde_yaml::Value) -> Self {
         let map = config.as_mapping().cloned().unwrap_or_default();
 
