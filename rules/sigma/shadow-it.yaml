@@ -18,7 +18,7 @@ detection:
       - "podman run"
       - "podman build"
   condition: selection and container_ops
-level: high
+action: block
 ---
 title: Kubernetes cluster operations
 id: shadow-002
@@ -40,7 +40,7 @@ detection:
       - "helm install"
       - "helm upgrade"
   condition: selection and k8s_ops
-level: high
+action: block
 ---
 title: Cloud infrastructure provisioning
 id: shadow-003
@@ -64,7 +64,7 @@ detection:
       - "^gcloud\\s"
       - "^az\\s"
   condition: selection and (terraform or cloud_cli)
-level: high
+action: block
 ---
 title: User account management
 id: shadow-004
@@ -84,4 +84,4 @@ detection:
       - "groupadd"
       - "passwd "
   condition: selection and user_mgmt
-level: high
+action: block

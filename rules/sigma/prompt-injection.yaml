@@ -24,7 +24,7 @@ detection:
       - "output your initial prompt"
       - "display your instructions"
   condition: extract_direct or extract_repeat
-level: high
+action: block
 ---
 title: Jailbreak pattern detected
 id: pi-002
@@ -51,7 +51,7 @@ detection:
       - "without any ethical"
       - "without safety"
   condition: jailbreak_identity or jailbreak_mode
-level: high
+action: block
 ---
 title: Role-play escape attempt
 id: pi-003
@@ -72,4 +72,4 @@ detection:
       - "bypass your safety"
       - "ignore your safety"
   condition: roleplay
-level: high
+action: block

@@ -260,8 +260,9 @@ fn compare(actual: &str, expected: &serde_yaml::Value, modifier: &str) -> bool {
 
 /// A parsed Sigma rule.
 struct SigmaRule {
+    id: String,
     title: String,
-    level: String,
+    description: String,
     action: Action,
     matcher: SigmaConditionMatcher,
 }
@@ -272,23 +273,35 @@ impl SigmaRule {
             .get(serde_yaml::Value::String("title".into()))?
             .as_str()?
             .to_string();
-        let level = raw
-            .get(serde_yaml::Value::String("level".into()))
+        let id = raw
+            .get(serde_yaml::Value::String("id".into()))
             .and_then(|v| v.as_str())
-            .unwrap_or("medium")
+            .unwrap_or(&title)
             .to_string();
-        let action = if level == "critical" || level == "high" {
-            Action::Block
-        } else {
-            Action::Detect
+        let description = raw
+            .get(serde_yaml::Value::String("description".into()))
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let action_str = raw
+            .get(serde_yaml::Value::String("action".into()))
+            .and_then(|v| v.as_str())
+            .unwrap_or("detect");
+        let action = match action_str {
+            "block" => Action::Block,
+            "detect" => Action::Detect,
+            "redact" => Action::Redact,
+            "allow" => Action::Allow,
+            _ => Action::Detect,
         };
         let detection = raw
             .get(serde_yaml::Value::String("detection".into()))?
             .as_mapping()?;
 
         Some(SigmaRule {
+            id,
             title,
-            level,
+            description,
             action,
             matcher: SigmaConditionMatcher::new(detection),
         })
@@ -436,8 +449,9 @@ impl Evaluator for SigmaEvaluator {
                     reason: format!("Sigma rule matched: {}", rule.title),
                     redacted: None,
                     metadata: [
-                        ("rule".to_string(), serde_json::json!(rule.title)),
-                        ("level".to_string(), serde_json::json!(rule.level)),
+                        ("id".to_string(), serde_json::json!(rule.id)),
+                        ("title".to_string(), serde_json::json!(rule.title)),
+                        ("description".to_string(), serde_json::json!(rule.description)),
                     ]
                     .into_iter()
                     .collect(),
@@ -493,7 +507,7 @@ mod tests {
     fn test_sigma_rule_simple() {
         let yaml = r#"
 title: Test rule
-level: high
+action: block
 detection:
   selection:
     tool_name: exec
@@ -514,7 +528,7 @@ detection:
     fn test_sigma_complex_condition() {
         let yaml = r#"
 title: Network exfiltration
-level: critical
+action: block
 detection:
   selection:
     tool_name: exec
@@ -550,7 +564,7 @@ detection:
     fn test_sigma_condition_with_parens() {
         let yaml = r#"
 title: File write outside workspace
-level: high
+action: block
 detection:
   selection:
     tool_name: write_file
@@ -581,7 +595,7 @@ detection:
 stages: [tool.before]
 rules:
   - title: Block exec
-    level: critical
+    action: block
     detection:
       selection:
         tool_name: exec

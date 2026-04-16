@@ -17,7 +17,7 @@ detection:
   home_ssh:
     tool_args.path|contains: ".ssh/"
   condition: selection and (target_paths or home_ssh)
-level: high
+action: block
 ---
 title: Shell command with network exfiltration indicators
 id: dt-002
@@ -42,7 +42,7 @@ detection:
       - ">"
       - "base64"
   condition: selection and network_tools and data_pipes
-level: critical
+action: block
 ---
 title: Database credential access via tool
 id: dt-003
@@ -69,4 +69,4 @@ detection:
       - "cat credentials"
       - "printenv"
   condition: selection and (sensitive_paths or sensitive_commands)
-level: high
+action: block

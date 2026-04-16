@@ -224,7 +224,8 @@ evaluators:
     type: regex
     stages: [tool.before]
     rules:
-      - label: "test"
+      - id: test-001
+        title: "test"
         pattern: "foo"
         action: detect
 "#;
@@ -247,7 +248,8 @@ evaluators:
   - name: enabled-eval
     type: regex
     rules:
-      - label: x
+      - id: test-001
+        title: x
         pattern: x
         action: detect
 "#;

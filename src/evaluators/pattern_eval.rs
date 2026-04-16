@@ -9,7 +9,9 @@ use crate::evaluators::Evaluator;
 
 /// A simple keyword / substring rule.
 struct PatternRule {
-    label: String,
+    id: String,
+    title: String,
+    description: String,
     action: Action,
     keywords: Vec<String>,
     case_sensitive: bool,
@@ -47,9 +49,19 @@ impl PatternEvaluator {
                 seq.iter()
                     .filter_map(|entry| {
                         let m = entry.as_mapping()?;
-                        let label = m
-                            .get(serde_yaml::Value::String("label".into()))?
+                        let id = m
+                            .get(serde_yaml::Value::String("id".into()))?
                             .as_str()?
+                            .to_string();
+                        let title = m
+                            .get(serde_yaml::Value::String("title".into()))
+                            .and_then(|v| v.as_str())
+                            .unwrap_or(&id)
+                            .to_string();
+                        let description = m
+                            .get(serde_yaml::Value::String("description".into()))
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
                             .to_string();
                         let action_str = m
                             .get(serde_yaml::Value::String("action".into()))
@@ -61,7 +73,7 @@ impl PatternEvaluator {
                             "detect" => Action::Detect,
                             "allow" => Action::Allow,
                             _ => {
-                                warn!(label, action = action_str, "Unknown action");
+                                warn!(id, action = action_str, "Unknown action");
                                 Action::Detect
                             }
                         };
@@ -80,12 +92,14 @@ impl PatternEvaluator {
                             .unwrap_or(false);
 
                         if keywords.is_empty() {
-                            warn!(label, "No keywords in pattern rule, skipping");
+                            warn!(id, "No keywords in pattern rule, skipping");
                             return None;
                         }
 
                         Some(PatternRule {
-                            label,
+                            id,
+                            title,
+                            description,
                             action,
                             keywords,
                             case_sensitive,
@@ -134,10 +148,12 @@ impl Evaluator for PatternEvaluator {
                         evaluator: self.name.clone(),
                         action: rule.action,
                         confidence: 1.0,
-                        reason: format!("Pattern match: {}", rule.label),
+                        reason: format!("Pattern match: {}", rule.title),
                         redacted: None,
                         metadata: [
-                            ("rule".to_string(), serde_json::json!(rule.label)),
+                            ("id".to_string(), serde_json::json!(rule.id)),
+                            ("title".to_string(), serde_json::json!(rule.title)),
+                            ("description".to_string(), serde_json::json!(rule.description)),
                             ("keyword".to_string(), serde_json::json!(keyword)),
                         ]
                         .into_iter()
@@ -184,7 +200,8 @@ mod tests {
             r#"
 stages: [tool.before]
 rules:
-  - label: "sql danger"
+  - id: test-001
+    title: "sql danger"
     keywords: ["DROP TABLE", "DELETE FROM"]
     action: detect
 "#,
@@ -200,7 +217,8 @@ rules:
             r#"
 stages: [tool.before]
 rules:
-  - label: "sql danger"
+  - id: test-001
+    title: "sql danger"
     keywords: ["DROP TABLE"]
     action: block
 "#,
@@ -216,7 +234,8 @@ rules:
             r#"
 stages: [tool.before]
 rules:
-  - label: "exact match"
+  - id: test-002
+    title: "exact match"
     keywords: ["SECRET"]
     action: block
     case_sensitive: true

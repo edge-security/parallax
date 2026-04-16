@@ -32,7 +32,7 @@ detection:
       - "service-account"
       - "application_default_credentials"
   condition: selection and (ssh_keys or credential_files or aws_credentials or gcp_credentials)
-level: high
+action: block
 ---
 title: System file reconnaissance
 id: recon-002
@@ -59,7 +59,7 @@ detection:
       - "cat /etc/shadow"
       - "/proc/self/environ"
   condition: selection and (system_files or commands)
-level: high
+action: block
 ---
 title: Cloud metadata endpoint access
 id: recon-003
@@ -77,7 +77,7 @@ detection:
       - "metadata.google.internal"
       - "metadata.azure.com"
   condition: selection and metadata_endpoints
-level: critical
+action: block
 ---
 title: Container and orchestration config access
 id: recon-004
@@ -100,4 +100,4 @@ detection:
       - ".docker/config.json"
       - "/var/run/docker.sock"
   condition: selection and (kube_config or docker_config)
-level: high
+action: block

@@ -112,7 +112,9 @@ evaluators:
     type: regex
     stages: [tool.before, tool.after]
     rules:
-      - label: "AWS Access Key"
+      - id: regex-sec-001
+        title: AWS Access Key
+        description: Detects AWS access key IDs starting with AKIA
         pattern: "AKIA[0-9A-Z]{16}"
         action: redact
 
@@ -120,7 +122,9 @@ evaluators:
     type: regex
     stages: [tool.before]
     rules:
-      - label: "Recursive delete"
+      - id: regex-cmd-001
+        title: Recursive delete
+        description: Blocks recursive deletion of root filesystem
         pattern: "rm\\s+-rf\\s+/"
         action: block
         fields: [tool_args.command]       # Only check this field
