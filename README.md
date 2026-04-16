@@ -1,37 +1,55 @@
 # Parallax
 
-Security decision engine for AI agent systems. One binary, one YAML config.
+Runtime security engine that protects AI agents from prompt injection, data exfiltration, and dangerous tool calls -- any framework, any LLM.
 
-Parallax evaluates every AI agent event -- messages, tool calls, and results -- against your security rules and decides to **block**, **redact**, or **allow** in microseconds.
+One binary, one YAML config. Evaluates every agent event in microseconds.
+
+## Why Parallax
+
+- **Single binary, zero runtime dependencies** -- `cargo build --release` produces one static executable. No Python, no JVM, no containers required.
+- **Microsecond evaluation** -- the evaluator chain runs in cost order and short-circuits on the first `block`. Typical decisions complete in under 0.2 ms.
+- **Framework-agnostic** -- works with any agent system that can make HTTP calls. First-class integrations for OpenClaw; LangChain, CrewAI, and OpenAI Agents SDK on the roadmap.
+- **51 rules out of the box** -- ships with rules covering 13 threat categories: prompt injection, reconnaissance, privilege escalation, PII leakage, supply chain attacks, data exfiltration, and more.
+- **Five evaluator engines** -- regex, keyword pattern, Sigma, CEL expressions, and SQL-based temporal analysis. Mix and match for layered defense.
 
 ## How It Works
 
 ```
   Agent Event ──> Parallax ──> Decision (block / redact / allow)
                      │
-                     ├── Audit Log
-                     └── Webhook
+                     ├── Audit Log (JSONL)
+                     └── Webhook (SIEM, Slack, PagerDuty)
 ```
 
 Every event passes through a chain of evaluators. Each evaluator checks the event against its rules and returns a verdict. The chain short-circuits on the first `block` -- no wasted work.
 
 ## Quick Start
-To configure it with OpenClaw:
+
+### Build from source
 
 ```bash
-git clone https://github.com/edge-security/parallax
-cd parallax/
+git clone https://github.com/agentic-defense/parallax
+cd parallax
 sudo snap install --classic rustup
 rustup default stable
 sudo apt install pkg-config libssl-dev
 cargo build --release
-# -> for plugin deployment
-openclaw plugins install --link ./shim
+```
+
+### Configure with OpenClaw
+
+```bash
+# Deploy the OpenClaw integration (server mode)
+openclaw plugins install --link ./integrations/openclaw
 openclaw plugins enable parallax-security
 openclaw gateway restart
+
+# Start the Parallax server
 ./target/release/parallax serve -c config.yaml
 ```
-To test functionality of parallax API server:
+
+### Test the evaluation endpoint
+
 ```bash
 curl http://127.0.0.1:9920/health
 
@@ -40,6 +58,28 @@ curl -X POST http://127.0.0.1:9920/evaluate \
   -d '{"stage":"tool.before","tool_name":"exec","tool_args":{"command":"rm -rf /"}}'
 # → {"action":"block","blocked":true,"reasons":["Regex match: Recursive delete"]}
 ```
+
+Your agent calls `POST /evaluate` before and after each tool execution and acts on the decision.
+
+## Supported Threat Categories
+
+| Category | Evaluator | Coverage |
+|----------|-----------|----------|
+| Prompt injection & jailbreak | Sigma | System prompt extraction, DAN mode, role-play escape |
+| Secret leakage | Regex | AWS keys, GitHub tokens, private keys, generic API keys |
+| PII exposure | Regex | SSN, credit cards, phone numbers |
+| Data exfiltration | Regex | Base64-encoded secrets, hex payloads, data URIs |
+| Dangerous commands | Regex + CEL | `rm -rf`, disk format, curl-pipe-bash |
+| Privilege escalation | CEL | sudo, su, pkexec, setuid, sudoers |
+| Reconnaissance | Sigma | Credential files, cloud metadata endpoints, container configs |
+| Shadow IT | Sigma | Docker, Kubernetes, Terraform, cloud CLI |
+| Supply chain attacks | Pattern | Custom package indexes, registry hijacking |
+| SQL injection | Pattern | DROP TABLE, DELETE FROM, TRUNCATE |
+| Model manipulation | CEL | System prompt tampering, temperature override, tool redefinition |
+| Resource abuse | SQL | Rate limiting, repeated tool abuse |
+| Sensitive file writes | Sigma | Writes to /etc, /usr, .ssh |
+
+See [RULES.md](RULES.md) for the full reference.
 
 ## Configuration
 
@@ -86,7 +126,7 @@ evaluators:
         fields: [tool_args.command]       # Only check this field
 ```
 
-See [config.yaml](config.yaml) for a complete working example.
+See [config.yaml](config.yaml) for a complete working example, or [config.minimal.yaml](config.minimal.yaml) for a minimal starter.
 
 ## Evaluator Types
 
@@ -99,8 +139,6 @@ See [config.yaml](config.yaml) for a complete working example.
 | **sql** | In-memory SQLite for rate limiting, frequency analysis, temporal patterns | `rules` with `query` + `condition` |
 
 Evaluators run in cost order (cheapest first) and short-circuit on block.
-
-Parallax ships with **51 rules across 13 threat categories** -- see [RULES.md](RULES.md) for the full reference, including prompt injection, reconnaissance, privilege escalation, PII leakage, supply chain, and more.
 
 ## Decisions
 
@@ -148,7 +186,7 @@ parallax serve -c config.yaml
 
 ### Proxy Mode
 
-Acts as a reverse proxy between your agent and the Anthropic API. All traffic is automatically evaluated -- no integration code needed.
+Acts as a reverse proxy between your agent and the LLM API. All traffic is automatically evaluated -- no integration code needed.
 
 ```bash
 parallax serve --mode proxy -c config.yaml
@@ -172,42 +210,9 @@ The proxy:
 - Replaces blocked tool calls with text explanations
 - Passes through non-messages endpoints transparently
 
-## OpenClaw Integration
+## Agent Framework Integrations
 
-Parallax is designed as the security layer for [OpenClaw](https://openclaw.ai) agent systems.
-
-### Proxy setup (Under development)
-
-```bash
-# 1. Configure OpenClaw to route through Parallax
-parallax setup-openclaw
-
-# 2. Start the proxy
-parallax serve --mode proxy -c config.yaml
-
-# To revert back to direct Anthropic access
-parallax revert-openclaw
-```
-
-### Shim plugin (Recommended)
-
-For server mode, install the shim plugin that forwards OpenClaw lifecycle events to Parallax:
-
-```bash
-# Install and enable the plugin
-openclaw plugins install --link ./shim
-openclaw plugins enable parallax-security
-
-# Start Parallax in server mode
-parallax serve -c config.yaml
-```
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PARALLAX_URL` | `http://127.0.0.1:9920/evaluate` | Evaluation endpoint |
-| `PARALLAX_TIMEOUT` | `3000` | Request timeout in ms |
-
-### Any agent system
+### Any agent system (HTTP API)
 
 Parallax works with any agent that can make HTTP requests. POST to `/evaluate`:
 
@@ -222,6 +227,33 @@ Parallax works with any agent that can make HTTP requests. POST to `/evaluate`:
 
 Check `blocked` in the response to decide whether to proceed.
 
+### OpenClaw
+
+Parallax includes a dedicated integration for [OpenClaw](https://openclaw.ai) agent systems. See [docs/integrations/openclaw.md](docs/integrations/openclaw.md) for full setup instructions.
+
+**Proxy setup:**
+
+```bash
+parallax setup --framework openclaw
+parallax serve --mode proxy -c config.yaml
+
+# To revert
+parallax revert --framework openclaw
+```
+
+**Server mode:**
+
+```bash
+openclaw plugins install --link ./integrations/openclaw
+openclaw plugins enable parallax-security
+parallax serve -c config.yaml
+```
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PARALLAX_URL` | `http://127.0.0.1:9920/evaluate` | Evaluation endpoint |
+| `PARALLAX_TIMEOUT` | `3000` | Request timeout in ms |
+
 ## CLI Reference
 
 ```
@@ -232,19 +264,46 @@ parallax serve [OPTIONS]
       --mode <MODE>         server or proxy [default: server]
       --log-level <LEVEL>   Log level [default: info]
 
-parallax setup-openclaw [OPTIONS]
+parallax setup --framework <FRAMEWORK> [OPTIONS]
       --host <HOST>         Proxy host [default: 127.0.0.1]
       --port <PORT>         Proxy port [default: 9920]
-      --model <MODEL>       Claude model ID [default: claude-sonnet-4-20250514]
+      --model <MODEL>       Model ID [default: claude-sonnet-4-20250514]
 
-parallax revert-openclaw [OPTIONS]
-      --model <MODEL>       Claude model ID [default: claude-sonnet-4-20250514]
+parallax revert --framework <FRAMEWORK> [OPTIONS]
+      --model <MODEL>       Model ID [default: claude-sonnet-4-20250514]
 ```
+
+Supported frameworks: `openclaw` (more coming in v0.3).
 
 ## Roadmap
 
-- **Webhook integrations** -- Slack, PagerDuty, and SIEM connectors
-- **Rule hot-reload** -- Watch config file for changes without restart
+### v0.3 -- Multi-Framework & Multi-Provider Support
+- Generic `parallax setup --framework <name>` for LangChain, CrewAI, OpenAI Agents SDK
+- Integration directory structure for framework integrations
+- OpenAI-compatible proxy mode (`/v1/chat/completions`) covering OpenAI, Azure OpenAI, and local models (Ollama, LM Studio)
+- Configurable upstream provider in `config.yaml`
+
+### v0.4 -- Advanced Evaluators
+- Embedding-based semantic prompt injection detection
+- Tool argument JSON Schema validation
+- Multi-turn escalation detection across conversation history
+- Token budget enforcement per session/user
+
+### v0.5 -- Extended Lifecycle Stages
+- `response.after` -- evaluate LLM responses before returning to the user
+- `memory.before` -- evaluate before writing to agent memory/context
+- RAG pipeline stages (`retrieval.before`, `retrieval.after`)
+- Rule hot-reload -- watch config file for changes without restart
+
+### v0.6 -- SDKs and Ecosystem
+- Python client library (`pip install parallax-client`) with LangChain/CrewAI decorators
+- TypeScript client library (`npm install @parallax/client`)
+- Webhook integrations -- Slack, PagerDuty, and SIEM connectors
+- Dashboard UI for rule management and audit log visualization
+
+## Architecture
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for details on the evaluator chain, short-circuit logic, and cost-ordered execution.
 
 ## Development
 

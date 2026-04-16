@@ -1,7 +1,7 @@
 {
   "id": "parallax-security",
   "name": "Parallax Security",
-  "description": "Security decision engine for OpenClaw agents — forwards events to Parallax for evaluation",
+  "description": "Parallax security integration — forwards agent lifecycle events to the Parallax evaluation engine",
   "version": "0.2.0",
   "configSchema": {
     "type": "object",

@@ -6,6 +6,8 @@ pub struct PlatformConfig {
     #[serde(default)]
     pub server: ServerConfig,
     #[serde(default)]
+    pub proxy: ProxyConfig,
+    #[serde(default)]
     pub reporting: ReportingConfig,
     #[serde(default)]
     pub evaluators: Vec<EvaluatorConfig>,
@@ -37,6 +39,43 @@ fn default_host() -> String {
 
 fn default_port() -> u16 {
     9920
+}
+
+/// Proxy mode configuration -- controls which upstream LLM provider to proxy to.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProxyConfig {
+    /// Upstream provider: "anthropic", "openai", "gemini", or "custom"
+    #[serde(default = "default_provider")]
+    pub provider: String,
+    /// Custom upstream base URL (used when provider is "custom", or to override defaults)
+    #[serde(default)]
+    pub upstream_url: Option<String>,
+}
+
+impl Default for ProxyConfig {
+    fn default() -> Self {
+        Self {
+            provider: default_provider(),
+            upstream_url: None,
+        }
+    }
+}
+
+impl ProxyConfig {
+    pub fn upstream_base_url(&self) -> &str {
+        if let Some(ref url) = self.upstream_url {
+            return url.as_str();
+        }
+        match self.provider.as_str() {
+            "openai" => "https://api.openai.com",
+            "gemini" => "https://generativelanguage.googleapis.com",
+            _ => "https://api.anthropic.com",
+        }
+    }
+}
+
+fn default_provider() -> String {
+    "anthropic".to_string()
 }
 
 /// Reporting / observability configuration.

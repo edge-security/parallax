@@ -1,5 +1,5 @@
 /**
- * Parallax Security — OpenClaw shim plugin.
+ * Parallax Security — OpenClaw server-mode integration.
  *
  * Registers lifecycle hooks and forwards events to the Parallax evaluation
  * server. The server runs the evaluator chain and returns a verdict.
