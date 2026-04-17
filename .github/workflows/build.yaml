@@ -2,6 +2,8 @@ name: build
 on:
   release:
     types: [published]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 env:
@@ -86,18 +88,20 @@ jobs:
       - name: Archive binary
         shell: bash
         run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+
           if [ "${{ github.event_name }}" = "release" ]; then
             VERSION="${{ github.ref_name }}"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            VERSION="pr-${{ github.event.pull_request.number }}-${SHORT_SHA}"
           else
-            SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
             VERSION="${{ github.ref_name }}-${SHORT_SHA}"
           fi
 
           ASSET_NAME="parallax-${VERSION}-${{ matrix.target }}.tar.gz"
+
           mkdir -p dist
-
           cp target/${{ matrix.target }}/release/parallax dist/
-
           cp LICENSE* dist/ || echo "License not found"
           cp README* dist/ || echo "Readme not found"
 
@@ -109,6 +113,7 @@ jobs:
         with:
           name: ${{ env.ASSET_PATH }}
           path: ${{ env.ASSET_PATH }}
+          retention-days: 7
 
       - name: Upload archive to GitHub Release
         if: github.event_name == 'release'
