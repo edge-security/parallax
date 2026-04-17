@@ -40,7 +40,7 @@ cargo build --release
 
 ```bash
 # Deploy the OpenClaw integration (server mode)
-openclaw plugins install --link ./integrations/openclaw
+openclaw plugins install --dangerously-force-unsafe-install --link ./integrations/openclaw
 openclaw plugins enable parallax-security
 openclaw gateway restart
 
