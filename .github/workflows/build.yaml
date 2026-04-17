@@ -1,0 +1,117 @@
+name: build
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-Dwarnings"
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y pkg-config libssl-dev
+      - run: cargo test --all-features
+
+  build:
+    name: Build release (${{ matrix.target }})
+    needs: [test]
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            runner: ubuntu-latest
+          - target: aarch64-unknown-linux-musl
+            runner: ubuntu-latest
+          - target: aarch64-apple-darwin
+            runner: macos-latest
+          - target: x86_64-apple-darwin
+            runner: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install build dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-musl" ]; then
+            sudo apt-get install -y gcc-aarch64-linux-gnu
+          fi
+
+      - name: Build release binary
+        shell: bash
+        run: |
+          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-musl" ]; then
+            export CC_aarch64_unknown_linux_musl=aarch64-linux-gnu-gcc
+            export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-gnu-gcc
+            export CFLAGS_aarch64_unknown_linux_musl="-D_FORTIFY_SOURCE=0 -DSQLITE_DISABLE_LFS"
+          fi
+
+          if [ "${{ matrix.target }}" = "x86_64-unknown-linux-musl" ]; then
+            export CFLAGS_x86_64_unknown_linux_musl="-D_FORTIFY_SOURCE=0 -DSQLITE_DISABLE_LFS"
+          fi
+
+          if [[ "${{ matrix.target }}" == *"apple-darwin"* ]]; then
+            export MACOSX_DEPLOYMENT_TARGET=11.0
+          fi
+
+          cargo build --release --target ${{ matrix.target }}
+
+      - name: Archive binary
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            VERSION="${{ github.ref_name }}"
+          else
+            SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+            VERSION="${{ github.ref_name }}-${SHORT_SHA}"
+          fi
+
+          ASSET_NAME="parallax-${VERSION}-${{ matrix.target }}.tar.gz"
+          mkdir -p dist
+
+          cp target/${{ matrix.target }}/release/parallax dist/
+
+          cp LICENSE* dist/ || echo "License not found"
+          cp README* dist/ || echo "Readme not found"
+
+          tar -czf "${ASSET_NAME}" -C dist .
+          echo "ASSET_PATH=${ASSET_NAME}" >> $GITHUB_ENV
+
+      - name: Upload archive to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ASSET_PATH }}
+          path: ${{ env.ASSET_PATH }}
+
+      - name: Upload archive to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ASSET_PATH }}
