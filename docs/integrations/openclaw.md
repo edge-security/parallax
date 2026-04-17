@@ -42,7 +42,7 @@ Server mode installs a lightweight TypeScript integration that forwards OpenClaw
 
 ```bash
 # Install the integration from the integrations directory
-openclaw plugins install --link ./integrations/openclaw
+openclaw plugins install --dangerously-force-unsafe-install --link ./integrations/openclaw
 openclaw plugins enable parallax-security
 
 # Start Parallax in server mode
