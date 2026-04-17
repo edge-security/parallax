@@ -367,7 +367,9 @@ impl CelValue {
 // ---------------------------------------------------------------------------
 
 struct CELRule {
-    label: String,
+    id: String,
+    title: String,
+    description: String,
     expr: Expr,
     action: Action,
     reason: String,
@@ -412,10 +414,20 @@ impl CELEvaluator {
                     Some(m) => m,
                     None => continue,
                 };
-                let label = m
-                    .get(serde_yaml::Value::String("label".into()))
+                let id = m
+                    .get(serde_yaml::Value::String("id".into()))
                     .and_then(|v| v.as_str())
                     .unwrap_or("unnamed")
+                    .to_string();
+                let title = m
+                    .get(serde_yaml::Value::String("title".into()))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or(&id)
+                    .to_string();
+                let description = m
+                    .get(serde_yaml::Value::String("description".into()))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
                     .to_string();
                 let expr_str = match m
                     .get(serde_yaml::Value::String("expr".into()))
@@ -423,7 +435,7 @@ impl CELEvaluator {
                 {
                     Some(s) => s,
                     None => {
-                        warn!(label, "CEL rule missing 'expr', skipping");
+                        warn!(id, "CEL rule missing 'expr', skipping");
                         continue;
                     }
                 };
@@ -446,13 +458,15 @@ impl CELEvaluator {
 
                 match parse_cel(expr_str) {
                     Some(expr) => rules.push(CELRule {
-                        label,
+                        id,
+                        title,
+                        description,
                         expr,
                         action,
                         reason,
                     }),
                     None => {
-                        warn!(label, expr = expr_str, "Failed to parse CEL expression");
+                        warn!(id, expr = expr_str, "Failed to parse CEL expression");
                     }
                 }
             }
@@ -490,7 +504,7 @@ impl Evaluator for CELEvaluator {
             match eval_expr(&rule.expr, &activation) {
                 Ok(CelValue::Bool(true)) => {
                     let reason = if rule.reason.is_empty() {
-                        format!("CEL policy triggered: {}", rule.label)
+                        format!("CEL policy triggered: {}", rule.title)
                     } else {
                         rule.reason.clone()
                     };
@@ -500,9 +514,13 @@ impl Evaluator for CELEvaluator {
                         confidence: 1.0,
                         reason,
                         redacted: None,
-                        metadata: [("rule".to_string(), serde_json::json!(rule.label))]
-                            .into_iter()
-                            .collect(),
+                        metadata: [
+                            ("id".to_string(), serde_json::json!(rule.id)),
+                            ("title".to_string(), serde_json::json!(rule.title)),
+                            ("description".to_string(), serde_json::json!(rule.description)),
+                        ]
+                        .into_iter()
+                        .collect(),
                     };
                 }
                 Err(()) => continue, // Missing field — skip rule
@@ -596,7 +614,9 @@ mod tests {
         let config: serde_yaml::Value = serde_yaml::from_str(r#"
 stages: [tool.before]
 rules:
-  - label: block-sudo
+  - id: cel-test-001
+    title: Block sudo
+    description: Blocks privilege escalation via sudo
     expr: 'tool_name == "exec" && tool_args_command.startsWith("sudo")'
     action: block
     reason: No sudo allowed

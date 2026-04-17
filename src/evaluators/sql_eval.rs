@@ -31,7 +31,9 @@ const MAX_EVENT_AGE_SECONDS: f64 = 3600.0;
 const MAX_EVENTS: i64 = 10_000;
 
 struct SQLRule {
-    label: String,
+    id: String,
+    title: String,
+    description: String,
     query: String,
     condition: String,
     action: Action,
@@ -85,10 +87,20 @@ impl SQLEvaluator {
                     Some(m) => m,
                     None => continue,
                 };
-                let label = m
-                    .get(serde_yaml::Value::String("label".into()))
+                let id = m
+                    .get(serde_yaml::Value::String("id".into()))
                     .and_then(|v| v.as_str())
                     .unwrap_or("unnamed")
+                    .to_string();
+                let title = m
+                    .get(serde_yaml::Value::String("title".into()))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or(&id)
+                    .to_string();
+                let description = m
+                    .get(serde_yaml::Value::String("description".into()))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
                     .to_string();
                 let query = match m
                     .get(serde_yaml::Value::String("query".into()))
@@ -96,7 +108,7 @@ impl SQLEvaluator {
                 {
                     Some(s) => s.to_string(),
                     None => {
-                        warn!(label, "SQL rule missing 'query', skipping");
+                        warn!(id, "SQL rule missing 'query', skipping");
                         continue;
                     }
                 };
@@ -106,7 +118,7 @@ impl SQLEvaluator {
                 {
                     Some(s) => s.to_string(),
                     None => {
-                        warn!(label, "SQL rule missing 'condition', skipping");
+                        warn!(id, "SQL rule missing 'condition', skipping");
                         continue;
                     }
                 };
@@ -128,7 +140,9 @@ impl SQLEvaluator {
                     .to_string();
 
                 rules.push(SQLRule {
-                    label,
+                    id,
+                    title,
+                    description,
                     query,
                     condition,
                     action,
@@ -288,7 +302,7 @@ impl Evaluator for SQLEvaluator {
                         Ok(row_map) => {
                             if Self::check_condition(&row_map, &rule.condition) {
                                 let reason = if rule.reason.is_empty() {
-                                    format!("SQL rule triggered: {}", rule.label)
+                                    format!("SQL rule triggered: {}", rule.title)
                                 } else {
                                     rule.reason.clone()
                                 };
@@ -299,7 +313,9 @@ impl Evaluator for SQLEvaluator {
                                     reason,
                                     redacted: None,
                                     metadata: [
-                                        ("rule".to_string(), serde_json::json!(rule.label)),
+                                        ("id".to_string(), serde_json::json!(rule.id)),
+                                        ("title".to_string(), serde_json::json!(rule.title)),
+                                        ("description".to_string(), serde_json::json!(rule.description)),
                                     ]
                                     .into_iter()
                                     .collect(),
@@ -307,12 +323,12 @@ impl Evaluator for SQLEvaluator {
                             }
                         }
                         Err(e) => {
-                            warn!(rule = %rule.label, error = %e, "SQL query failed");
+                            warn!(id = %rule.id, error = %e, "SQL query failed");
                         }
                     }
                 }
                 Err(e) => {
-                    warn!(rule = %rule.label, error = %e, "Failed to prepare SQL query");
+                    warn!(id = %rule.id, error = %e, "Failed to prepare SQL query");
                 }
             }
         }
@@ -349,7 +365,9 @@ mod tests {
         let config: serde_yaml::Value = serde_yaml::from_str(r#"
 stages: [tool.before]
 rules:
-  - label: burst-detect
+  - id: sql-test-001
+    title: Burst detection
+    description: Detects burst of events in a session
     query: "SELECT COUNT(*) as cnt FROM events WHERE session_id = :session_id"
     condition: "cnt > 3"
     action: block

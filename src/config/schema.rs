@@ -115,7 +115,7 @@ pub struct EvaluatorConfig {
     pub rules: Vec<serde_yaml::Value>,
     #[serde(default)]
     pub rules_dir: Option<String>,
-    /// Catch-all for evaluator-specific fields (action, label, threshold, etc.)
+    /// Catch-all for evaluator-specific fields (action, threshold, etc.)
     #[serde(flatten)]
     pub extra: std::collections::HashMap<String, serde_yaml::Value>,
 }

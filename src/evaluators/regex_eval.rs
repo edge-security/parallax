@@ -17,7 +17,9 @@ struct PatternEntry {
 
 /// A rule consisting of one or more patterns with a match mode.
 struct RegexRule {
-    label: String,
+    id: String,
+    title: String,
+    description: String,
     action: Action,
     fields: Option<Vec<String>>,
     patterns: Vec<PatternEntry>,
@@ -33,9 +35,19 @@ enum MatchMode {
 impl RegexRule {
     fn from_config(raw: &serde_yaml::Value) -> Option<Self> {
         let map = raw.as_mapping()?;
-        let label = map
-            .get(serde_yaml::Value::String("label".into()))?
+        let id = map
+            .get(serde_yaml::Value::String("id".into()))?
             .as_str()?
+            .to_string();
+        let title = map
+            .get(serde_yaml::Value::String("title".into()))
+            .and_then(|v| v.as_str())
+            .unwrap_or(&id)
+            .to_string();
+        let description = map
+            .get(serde_yaml::Value::String("description".into()))
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
             .to_string();
         let action_str = map
             .get(serde_yaml::Value::String("action".into()))
@@ -47,7 +59,7 @@ impl RegexRule {
             "redact" => Action::Redact,
             "allow" => Action::Allow,
             _ => {
-                warn!(label, action = action_str, "Unknown action, defaulting to block");
+                warn!(id, action = action_str, "Unknown action, defaulting to block");
                 Action::Block
             }
         };
@@ -87,7 +99,7 @@ impl RegexRule {
                     field: None,
                 }),
                 Err(e) => {
-                    warn!(label, pattern = p, error = %e, "Invalid regex pattern, skipping rule");
+                    warn!(id, pattern = p, error = %e, "Invalid regex pattern, skipping rule");
                     return None;
                 }
             }
@@ -107,7 +119,7 @@ impl RegexRule {
                             field: None,
                         }),
                         Err(e) => {
-                            warn!(label, pattern = s, error = %e, "Invalid regex, skipping pattern");
+                            warn!(id, pattern = s, error = %e, "Invalid regex, skipping pattern");
                         }
                     }
                 } else if let Some(m) = entry.as_mapping() {
@@ -131,7 +143,7 @@ impl RegexRule {
                                 field,
                             }),
                             Err(e) => {
-                                warn!(label, pattern = pat_str, error = %e, "Invalid regex, skipping");
+                                warn!(id, pattern = pat_str, error = %e, "Invalid regex, skipping");
                             }
                         }
                     }
@@ -140,12 +152,14 @@ impl RegexRule {
         }
 
         if patterns.is_empty() {
-            warn!(label, "No valid patterns in rule, skipping");
+            warn!(id, "No valid patterns in rule, skipping");
             return None;
         }
 
         Some(RegexRule {
-            label,
+            id,
+            title,
+            description,
             action,
             fields,
             patterns,
@@ -296,17 +310,13 @@ impl Evaluator for RegexEvaluator {
                         evaluator: self.name.clone(),
                         action: rule.action,
                         confidence: 1.0,
-                        reason: format!("Regex match: {}", rule.label),
+                        reason: format!("Regex match: {}", rule.title),
                         redacted,
                         metadata: [
-                            (
-                                "rule".to_string(),
-                                serde_json::json!(rule.label),
-                            ),
-                            (
-                                "match".to_string(),
-                                serde_json::json!(match_preview),
-                            ),
+                            ("id".to_string(), serde_json::json!(rule.id)),
+                            ("title".to_string(), serde_json::json!(rule.title)),
+                            ("description".to_string(), serde_json::json!(rule.description)),
+                            ("match".to_string(), serde_json::json!(match_preview)),
                         ]
                         .into_iter()
                         .collect(),
@@ -353,7 +363,9 @@ mod tests {
             r#"
 stages: [tool.before]
 rules:
-  - label: "dangerous rm"
+  - id: test-001
+    title: "dangerous rm"
+    description: "Blocks recursive rm"
     pattern: "rm\\s+-rf\\s+/"
     action: block
 "#,
@@ -370,7 +382,8 @@ rules:
             r#"
 stages: [tool.before]
 rules:
-  - label: "dangerous rm"
+  - id: test-001
+    title: "dangerous rm"
     pattern: "rm\\s+-rf\\s+/"
     action: block
 "#,
@@ -386,7 +399,8 @@ rules:
             r#"
 stages: [tool.before]
 rules:
-  - label: "AWS key"
+  - id: test-002
+    title: "AWS key"
     pattern: "AKIA[0-9A-Z]{16}"
     action: redact
 "#,
@@ -403,7 +417,8 @@ rules:
             r#"
 stages: [tool.before]
 rules:
-  - label: "rm in command field"
+  - id: test-003
+    title: "rm in command field"
     pattern: "rm\\s+-rf"
     action: block
     fields: [tool_args.command]
@@ -420,7 +435,8 @@ rules:
             r#"
 stages: [tool.before]
 rules:
-  - label: "must match both"
+  - id: test-004
+    title: "must match both"
     action: block
     match: all
     patterns:
@@ -443,7 +459,8 @@ rules:
             r#"
 stages: [tool.before]
 rules:
-  - label: "rm without safe flag"
+  - id: test-005
+    title: "rm without safe flag"
     action: block
     match: all
     patterns:

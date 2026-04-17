@@ -35,27 +35,39 @@ evaluators:
     type: regex
     stages: [tool.before, tool.after]
     rules:
-      - label: "AWS Access Key"
+      - id: regex-sec-001
+        title: AWS Access Key
+        description: Detects AWS access key IDs starting with AKIA
         pattern: "AKIA[0-9A-Z]{16}"
         action: redact
 
-      - label: "AWS Secret Key"
+      - id: regex-sec-002
+        title: AWS Secret Key
+        description: Detects AWS secret access keys in configuration or environment variables
         pattern: "(?i)aws_secret_access_key\\s*[=:]\\s*[A-Za-z0-9/+=]{40}"
         action: redact
 
-      - label: "GitHub Personal Access Token"
+      - id: regex-sec-003
+        title: GitHub Personal Access Token
+        description: Detects GitHub personal access tokens (classic format)
         pattern: "ghp_[A-Za-z0-9]{36}"
         action: redact
 
-      - label: "GitHub Fine-Grained Token"
+      - id: regex-sec-004
+        title: GitHub Fine-Grained Token
+        description: Detects GitHub fine-grained personal access tokens
         pattern: "github_pat_[A-Za-z0-9_]{82}"
         action: redact
 
-      - label: "Generic API Key"
+      - id: regex-sec-005
+        title: Generic API Key
+        description: Detects generic API keys and secret keys in assignments
         pattern: "(?i)(api[_-]?key|apikey|secret[_-]?key)\\s*[=:]\\s*['\"]?[A-Za-z0-9]{20,}"
         action: redact
 
-      - label: "Private Key Block"
+      - id: regex-sec-006
+        title: Private Key Block
+        description: Detects PEM-encoded private key blocks
         pattern: "-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----"
         action: block
 
@@ -65,23 +77,33 @@ evaluators:
     type: regex
     stages: [tool.after]
     rules:
-      - label: "Social Security Number"
+      - id: regex-pii-001
+        title: Social Security Number
+        description: Detects US Social Security Numbers in NNN-NN-NNNN format
         pattern: "\\b\\d{3}-\\d{2}-\\d{4}\\b"
         action: redact
 
-      - label: "Credit Card - Visa"
+      - id: regex-pii-002
+        title: Credit Card - Visa
+        description: Detects Visa credit card numbers
         pattern: "\\b4\\d{3}[- ]?\\d{4}[- ]?\\d{4}[- ]?\\d{4}\\b"
         action: redact
 
-      - label: "Credit Card - Mastercard"
+      - id: regex-pii-003
+        title: Credit Card - Mastercard
+        description: Detects Mastercard credit card numbers
         pattern: "\\b5[1-5]\\d{2}[- ]?\\d{4}[- ]?\\d{4}[- ]?\\d{4}\\b"
         action: redact
 
-      - label: "Credit Card - Amex"
+      - id: regex-pii-004
+        title: Credit Card - Amex
+        description: Detects American Express credit card numbers
         pattern: "\\b3[47]\\d{2}[- ]?\\d{6}[- ]?\\d{5}\\b"
         action: redact
 
-      - label: "US Phone Number"
+      - id: regex-pii-005
+        title: US Phone Number
+        description: Detects US phone numbers in various formats
         pattern: "\\b(?:\\+1[- ]?)?\\(?\\d{3}\\)?[- ]?\\d{3}[- ]?\\d{4}\\b"
         action: redact
 
@@ -91,15 +113,21 @@ evaluators:
     type: regex
     stages: [tool.before, tool.after]
     rules:
-      - label: "Base64-encoded secret indicator"
+      - id: regex-exfil-001
+        title: Base64-encoded secret indicator
+        description: Detects base64-encoded values following secret-like key names
         pattern: "(?i)(password|secret|token|key)[=:]\\s*[A-Za-z0-9+/]{40,}={0,2}"
         action: detect
 
-      - label: "Long hex-encoded data block"
+      - id: regex-exfil-002
+        title: Long hex-encoded data block
+        description: Detects long hex-encoded strings that may indicate data exfiltration
         pattern: "\\b[0-9a-fA-F]{64,}\\b"
         action: detect
 
-      - label: "Data URI with base64"
+      - id: regex-exfil-003
+        title: Data URI with base64
+        description: Detects data URIs with large base64 payloads
         pattern: "data:[a-z/]+;base64,[A-Za-z0-9+/]{100,}"
         action: detect
 
@@ -109,27 +137,37 @@ evaluators:
     type: regex
     stages: [tool.before]
     rules:
-      - label: "Recursive delete root"
+      - id: regex-cmd-001
+        title: Recursive delete root
+        description: Blocks recursive deletion of root filesystem
         pattern: "rm\\s+-[a-zA-Z]*r[a-zA-Z]*f[a-zA-Z]*\\s+/"
         action: block
         fields: [tool_args.command]
 
-      - label: "Format disk"
+      - id: regex-cmd-002
+        title: Format disk
+        description: Blocks filesystem formatting commands
         pattern: "mkfs\\."
         action: block
         fields: [tool_args.command]
 
-      - label: "Disk overwrite"
+      - id: regex-cmd-003
+        title: Disk overwrite
+        description: Blocks raw disk writes via dd to device files
         pattern: "dd\\s+.*of=/dev/"
         action: block
         fields: [tool_args.command]
 
-      - label: "Chmod 777 recursive"
+      - id: regex-cmd-004
+        title: Chmod 777 recursive
+        description: Detects recursive permission changes to world-writable
         pattern: "chmod\\s+-[a-zA-Z]*R[a-zA-Z]*\\s+777"
         action: detect
         fields: [tool_args.command]
 
-      - label: "Curl pipe to shell"
+      - id: regex-cmd-005
+        title: Curl pipe to shell
+        description: Blocks piping curl output directly to a shell interpreter
         pattern: "curl\\s+.*\\|\\s*(bash|sh|zsh)"
         action: block
         fields: [tool_args.command]
@@ -140,7 +178,9 @@ evaluators:
     type: pattern
     stages: [message.before, tool.before]
     rules:
-      - label: "SQL destructive keywords"
+      - id: pat-sql-001
+        title: SQL destructive keywords
+        description: Detects common SQL injection and destructive query patterns
         keywords:
           - "DROP TABLE"
           - "DROP DATABASE"
@@ -156,28 +196,36 @@ evaluators:
     type: pattern
     stages: [tool.before]
     rules:
-      - label: "Pip install from custom index"
+      - id: pat-sc-001
+        title: Pip install from custom index
+        description: Blocks pip installs from non-default package indexes
         keywords:
           - "pip install --index-url"
           - "pip install --extra-index-url"
           - "pip install -i http"
         action: block
 
-      - label: "Npm install from custom registry"
+      - id: pat-sc-002
+        title: Npm install from custom registry
+        description: Blocks npm installs from non-default registries
         keywords:
           - "npm install --registry"
           - "npm config set registry"
           - "yarn config set registry"
         action: block
 
-      - label: "Wget pipe to shell"
+      - id: pat-sc-003
+        title: Wget pipe to shell
+        description: Blocks piping wget output directly to a shell interpreter
         keywords:
           - "wget -O - | bash"
           - "wget -O - | sh"
           - "wget -q -O - | bash"
         action: block
 
-      - label: "Gem install from custom source"
+      - id: pat-sc-004
+        title: Gem install from custom source
+        description: Blocks gem installs from non-default sources
         keywords:
           - "gem install --source http"
           - "gem sources --add http"
@@ -219,7 +267,9 @@ evaluators:
     type: sql
     stages: [tool.before, tool.after]
     rules:
-      - label: "High tool call rate"
+      - id: sql-rl-001
+        title: High tool call rate
+        description: Detects unusually high tool call rates per session
         query: >
           SELECT COUNT(*) as cnt FROM events
           WHERE session_id = :session_id
@@ -228,7 +278,9 @@ evaluators:
         action: detect
         reason: "Unusually high tool call rate (>50/min)"
 
-      - label: "Repeated tool abuse"
+      - id: sql-rl-002
+        title: Repeated tool abuse
+        description: Detects repeated calls to the same tool in a short window
         query: >
           SELECT COUNT(*) as cnt FROM events
           WHERE session_id = :session_id

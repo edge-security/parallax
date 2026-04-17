@@ -1,39 +1,53 @@
 # Privilege Escalation Detection
 #
 # CEL expressions detecting attempts to escalate privileges.
-# Fields use underscores: tool_args.command → tool_args_command
+# Fields use underscores: tool_args.command -> tool_args_command
 
-- label: block-sudo
+- id: cel-pe-001
+  title: Block sudo privilege escalation
+  description: Blocks privilege escalation via sudo command
   expr: 'tool_name == "exec" && tool_args_command.matches("^sudo\\s")'
   action: block
   reason: Privilege escalation via sudo is not allowed
 
-- label: block-su
+- id: cel-pe-002
+  title: Block user switching
+  description: Blocks switching to another user via su command
   expr: 'tool_name == "exec" && tool_args_command.matches("^su\\s+-|^su\\s+root")'
   action: block
   reason: Switching to another user is not allowed
 
-- label: block-pkexec
+- id: cel-pe-003
+  title: Block pkexec privilege escalation
+  description: Blocks privilege escalation via pkexec
   expr: 'tool_name == "exec" && tool_args_command.contains("pkexec")'
   action: block
   reason: Privilege escalation via pkexec is not allowed
 
-- label: block-doas
+- id: cel-pe-004
+  title: Block doas privilege escalation
+  description: Blocks privilege escalation via doas command
   expr: 'tool_name == "exec" && tool_args_command.matches("^doas\\s")'
   action: block
   reason: Privilege escalation via doas is not allowed
 
-- label: block-chown-root
+- id: cel-pe-005
+  title: Block chown to root
+  description: Blocks changing file ownership to root
   expr: 'tool_name == "exec" && tool_args_command.matches("chown\\s+root")'
   action: block
   reason: Changing file ownership to root is not allowed
 
-- label: block-setuid
+- id: cel-pe-006
+  title: Block setuid bit
+  description: Blocks setting the setuid bit on files
   expr: 'tool_name == "exec" && tool_args_command.contains("chmod u+s")'
   action: block
   reason: Setting setuid bit is not allowed
 
-- label: block-sudoers-edit
+- id: cel-pe-007
+  title: Block sudoers modification
+  description: Blocks modifying the sudoers configuration
   expr: 'tool_name == "exec" && (tool_args_command.contains("visudo") || tool_args_command.contains("/etc/sudoers"))'
   action: block
   reason: Modifying sudoers configuration is not allowed

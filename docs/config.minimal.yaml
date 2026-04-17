@@ -20,13 +20,19 @@ evaluators:
     type: regex
     stages: [tool.before, tool.after]
     rules:
-      - label: "AWS Access Key"
+      - id: regex-sec-001
+        title: AWS Access Key
+        description: Detects AWS access key IDs starting with AKIA
         pattern: "AKIA[0-9A-Z]{16}"
         action: redact
-      - label: "GitHub PAT"
+      - id: regex-sec-003
+        title: GitHub PAT
+        description: Detects GitHub personal access tokens (classic format)
         pattern: "ghp_[A-Za-z0-9]{36}"
         action: redact
-      - label: "Private Key Block"
+      - id: regex-sec-006
+        title: Private Key Block
+        description: Detects PEM-encoded private key blocks
         pattern: "-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----"
         action: block
 
@@ -34,11 +40,15 @@ evaluators:
     type: regex
     stages: [tool.before]
     rules:
-      - label: "Recursive delete"
+      - id: regex-cmd-001
+        title: Recursive delete
+        description: Blocks recursive deletion of root filesystem
         pattern: "rm\\s+-[a-zA-Z]*r[a-zA-Z]*f[a-zA-Z]*\\s+/"
         action: block
         fields: [tool_args.command]
-      - label: "Curl pipe to shell"
+      - id: regex-cmd-005
+        title: Curl pipe to shell
+        description: Blocks piping curl output directly to a shell interpreter
         pattern: "curl\\s+.*\\|\\s*(bash|sh|zsh)"
         action: block
         fields: [tool_args.command]

@@ -3,22 +3,30 @@
 # Expressions are evaluated against flattened event context.
 # Field names use underscores instead of dots (e.g. tool_args_command).
 
-- label: block-rm-rf
+- id: cel-pol-001
+  title: Block recursive file deletion
+  description: Prevents recursive file deletion via rm -r commands
   expr: 'tool_name == "exec" && tool_args_command.matches("rm\\s+-r")'
   action: block
   reason: Recursive file deletion is not allowed
 
-- label: block-chmod-777
+- id: cel-pol-002
+  title: Block world-writable permissions
+  description: Prevents setting chmod 777 which makes files world-writable
   expr: 'tool_name == "exec" && tool_args_command.contains("chmod 777")'
   action: block
   reason: Setting world-writable permissions is not allowed
 
-- label: warn-sudo
+- id: cel-pol-003
+  title: Warn on sudo usage
+  description: Detects elevated privilege execution via sudo
   expr: 'tool_name == "exec" && tool_args_command.startsWith("sudo")'
   action: detect
   reason: Elevated privilege execution detected
 
-- label: block-env-dump
+- id: cel-pol-004
+  title: Block environment variable dump
+  description: Detects environment variable dumps that may expose secrets
   expr: 'tool_name == "exec" && (tool_args_command == "env" || tool_args_command == "printenv" || tool_args_command.contains("export"))'
   action: detect
   reason: Environment variable dump may expose secrets
