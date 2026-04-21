@@ -8,6 +8,7 @@
   description: Prevents recursive file deletion via rm -r commands
   expr: 'tool_name == "exec" && tool_args_command.matches("rm\\s+-r")'
   action: block
+  priority: critical
   reason: Recursive file deletion is not allowed
 
 - id: cel-pol-002
@@ -15,6 +16,7 @@
   description: Prevents setting chmod 777 which makes files world-writable
   expr: 'tool_name == "exec" && tool_args_command.contains("chmod 777")'
   action: block
+  priority: medium
   reason: Setting world-writable permissions is not allowed
 
 - id: cel-pol-003
@@ -22,6 +24,7 @@
   description: Detects elevated privilege execution via sudo
   expr: 'tool_name == "exec" && tool_args_command.startsWith("sudo")'
   action: detect
+  priority: low
   reason: Elevated privilege execution detected
 
 - id: cel-pol-004
@@ -29,4 +32,5 @@
   description: Detects environment variable dumps that may expose secrets
   expr: 'tool_name == "exec" && (tool_args_command == "env" || tool_args_command == "printenv" || tool_args_command.contains("export"))'
   action: detect
+  priority: medium
   reason: Environment variable dump may expose secrets

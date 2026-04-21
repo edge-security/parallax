@@ -2,6 +2,7 @@ title: Container runtime operations
 id: shadow-001
 status: experimental
 description: Detects agent creating, running, or building containers without approval
+priority: medium
 logsource:
   product: parallax
   service: tool
@@ -24,6 +25,7 @@ title: Kubernetes cluster operations
 id: shadow-002
 status: experimental
 description: Detects agent deploying or modifying Kubernetes resources
+priority: medium
 logsource:
   product: parallax
   service: tool
@@ -46,6 +48,7 @@ title: Cloud infrastructure provisioning
 id: shadow-003
 status: experimental
 description: Detects agent provisioning or modifying cloud infrastructure
+priority: critical
 logsource:
   product: parallax
   service: tool
@@ -70,6 +73,7 @@ title: User account management
 id: shadow-004
 status: experimental
 description: Detects agent creating or modifying system user accounts
+priority: medium
 logsource:
   product: parallax
   service: tool

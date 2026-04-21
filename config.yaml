@@ -40,36 +40,42 @@ evaluators:
         description: Detects AWS access key IDs starting with AKIA
         pattern: "AKIA[0-9A-Z]{16}"
         action: redact
+        priority: critical
 
       - id: regex-sec-002
         title: AWS Secret Key
         description: Detects AWS secret access keys in configuration or environment variables
         pattern: "(?i)aws_secret_access_key\\s*[=:]\\s*[A-Za-z0-9/+=]{40}"
         action: redact
+        priority: critical
 
       - id: regex-sec-003
         title: GitHub Personal Access Token
         description: Detects GitHub personal access tokens (classic format)
         pattern: "ghp_[A-Za-z0-9]{36}"
         action: redact
+        priority: critical
 
       - id: regex-sec-004
         title: GitHub Fine-Grained Token
         description: Detects GitHub fine-grained personal access tokens
         pattern: "github_pat_[A-Za-z0-9_]{82}"
         action: redact
+        priority: critical
 
       - id: regex-sec-005
         title: Generic API Key
         description: Detects generic API keys and secret keys in assignments
         pattern: "(?i)(api[_-]?key|apikey|secret[_-]?key)\\s*[=:]\\s*['\"]?[A-Za-z0-9]{20,}"
         action: redact
+        priority: medium
 
       - id: regex-sec-006
         title: Private Key Block
         description: Detects PEM-encoded private key blocks
         pattern: "-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----"
         action: block
+        priority: critical
 
   # ── PII Leakage Scanner ────────────────────────────────────────
   # Redacts personally identifiable information from tool outputs.
@@ -82,30 +88,35 @@ evaluators:
         description: Detects US Social Security Numbers in NNN-NN-NNNN format
         pattern: "\\b\\d{3}-\\d{2}-\\d{4}\\b"
         action: redact
+        priority: critical
 
       - id: regex-pii-002
         title: Credit Card - Visa
         description: Detects Visa credit card numbers
         pattern: "\\b4\\d{3}[- ]?\\d{4}[- ]?\\d{4}[- ]?\\d{4}\\b"
         action: redact
+        priority: critical
 
       - id: regex-pii-003
         title: Credit Card - Mastercard
         description: Detects Mastercard credit card numbers
         pattern: "\\b5[1-5]\\d{2}[- ]?\\d{4}[- ]?\\d{4}[- ]?\\d{4}\\b"
         action: redact
+        priority: critical
 
       - id: regex-pii-004
         title: Credit Card - Amex
         description: Detects American Express credit card numbers
         pattern: "\\b3[47]\\d{2}[- ]?\\d{6}[- ]?\\d{5}\\b"
         action: redact
+        priority: critical
 
       - id: regex-pii-005
         title: US Phone Number
         description: Detects US phone numbers in various formats
         pattern: "\\b(?:\\+1[- ]?)?\\(?\\d{3}\\)?[- ]?\\d{3}[- ]?\\d{4}\\b"
         action: redact
+        priority: medium
 
   # ── Data Exfiltration Patterns ─────────────────────────────────
   # Detects encoded data and exfiltration indicators.
@@ -118,18 +129,21 @@ evaluators:
         description: Detects base64-encoded values following secret-like key names
         pattern: "(?i)(password|secret|token|key)[=:]\\s*[A-Za-z0-9+/]{40,}={0,2}"
         action: detect
+        priority: medium
 
       - id: regex-exfil-002
         title: Long hex-encoded data block
         description: Detects long hex-encoded strings that may indicate data exfiltration
         pattern: "\\b[0-9a-fA-F]{64,}\\b"
         action: detect
+        priority: low
 
       - id: regex-exfil-003
         title: Data URI with base64
         description: Detects data URIs with large base64 payloads
         pattern: "data:[a-z/]+;base64,[A-Za-z0-9+/]{100,}"
         action: detect
+        priority: low
 
   # ── Dangerous Commands ──────────────────────────────────────────
   # Blocks dangerous shell commands before they execute.
@@ -142,6 +156,7 @@ evaluators:
         description: Blocks recursive deletion of root filesystem
         pattern: "rm\\s+-[a-zA-Z]*r[a-zA-Z]*f[a-zA-Z]*\\s+/"
         action: block
+        priority: critical
         fields: [tool_args.command]
 
       - id: regex-cmd-002
@@ -149,6 +164,7 @@ evaluators:
         description: Blocks filesystem formatting commands
         pattern: "mkfs\\."
         action: block
+        priority: critical
         fields: [tool_args.command]
 
       - id: regex-cmd-003
@@ -156,6 +172,7 @@ evaluators:
         description: Blocks raw disk writes via dd to device files
         pattern: "dd\\s+.*of=/dev/"
         action: block
+        priority: critical
         fields: [tool_args.command]
 
       - id: regex-cmd-004
@@ -163,6 +180,7 @@ evaluators:
         description: Detects recursive permission changes to world-writable
         pattern: "chmod\\s+-[a-zA-Z]*R[a-zA-Z]*\\s+777"
         action: detect
+        priority: medium
         fields: [tool_args.command]
 
       - id: regex-cmd-005
@@ -170,6 +188,7 @@ evaluators:
         description: Blocks piping curl output directly to a shell interpreter
         pattern: "curl\\s+.*\\|\\s*(bash|sh|zsh)"
         action: block
+        priority: critical
         fields: [tool_args.command]
 
   # ── SQL Injection Keywords ──────────────────────────────────────
@@ -189,6 +208,7 @@ evaluators:
           - "'; --"
           - "1=1"
         action: detect
+        priority: medium
 
   # ── Supply Chain ───────────────────────────────────────────────
   # Blocks untrusted package installs and dependency confusion.
@@ -204,6 +224,7 @@ evaluators:
           - "pip install --extra-index-url"
           - "pip install -i http"
         action: block
+        priority: critical
 
       - id: pat-sc-002
         title: Npm install from custom registry
@@ -213,6 +234,7 @@ evaluators:
           - "npm config set registry"
           - "yarn config set registry"
         action: block
+        priority: critical
 
       - id: pat-sc-003
         title: Wget pipe to shell
@@ -222,6 +244,7 @@ evaluators:
           - "wget -O - | sh"
           - "wget -q -O - | bash"
         action: block
+        priority: critical
 
       - id: pat-sc-004
         title: Gem install from custom source
@@ -230,6 +253,7 @@ evaluators:
           - "gem install --source http"
           - "gem sources --add http"
         action: block
+        priority: critical
 
   # ── Sigma Rule Engine ──────────────────────────────────────────
   # Loads Sigma-format YAML rules from a directory. Each .yaml file
@@ -276,6 +300,7 @@ evaluators:
           AND timestamp > :now - 60
         condition: "cnt > 50"
         action: detect
+        priority: medium
         reason: "Unusually high tool call rate (>50/min)"
 
       - id: sql-rl-002
@@ -288,4 +313,5 @@ evaluators:
           AND timestamp > :now - 300
         condition: "cnt > 20"
         action: detect
+        priority: medium
         reason: "Same tool called >20 times in 5 minutes"
