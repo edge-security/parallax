@@ -29,12 +29,12 @@ Every event passes through a chain of evaluators. Each evaluator checks the even
 
 **Option A — Download a release** (fastest)
 
-Grab a pre-built binary for your platform from [GitHub Releases](https://github.com/agentic-defense/parallax/releases/latest).
+Grab a pre-built binary for your platform from [GitHub Releases](https://github.com/agent-defense/parallax/releases/latest).
 
 **Option B — Build from source**
 
 ```bash
-git clone https://github.com/agentic-defense/parallax
+git clone https://github.com/agent-defense/parallax
 cd parallax
 cargo build --release
 ```
