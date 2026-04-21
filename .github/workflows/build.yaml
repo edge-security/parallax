@@ -104,6 +104,8 @@ jobs:
           cp target/${{ matrix.target }}/release/parallax dist/
           cp LICENSE* dist/ || echo "License not found"
           cp README* dist/ || echo "Readme not found"
+          cp config.yaml parallax.yaml dist/ 2>/dev/null || true
+          cp -r rules dist/ 2>/dev/null || true
 
           tar -czf "${ASSET_NAME}" -C dist .
           echo "ASSET_PATH=${ASSET_NAME}" >> $GITHUB_ENV
