@@ -28,7 +28,7 @@
   reason: Elevated privilege execution detected
 
 - id: cel-pol-004
-  title: Block environment variable dump
+  title: Warn environment variable dump
   description: Detects environment variable dumps that may expose secrets
   expr: 'tool_name == "exec" && (tool_args_command == "env" || tool_args_command == "printenv" || tool_args_command.contains("export"))'
   action: detect
