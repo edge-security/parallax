@@ -8,7 +8,7 @@
   description: Detects attempts to modify the system prompt through tool calls
   expr: 'tool_args_command.contains("system_prompt") || tool_args_command.contains("system_message")'
   action: block
-  priority: critical
+  priority: high
   reason: Modifying system prompt via tool calls is not allowed
 
 - id: cel-mm-002

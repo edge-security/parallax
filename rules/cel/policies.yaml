@@ -8,7 +8,7 @@
   description: Prevents recursive file deletion via rm -r commands
   expr: 'tool_name == "exec" && tool_args_command.matches("rm\\s+-r")'
   action: block
-  priority: critical
+  priority: high
   reason: Recursive file deletion is not allowed
 
 - id: cel-pol-002

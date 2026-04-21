@@ -2,7 +2,7 @@ title: System prompt extraction attempt
 id: pi-001
 status: experimental
 description: Detects messages attempting to extract the system prompt or initial instructions
-priority: critical
+priority: high
 logsource:
   product: parallax
   service: message
@@ -31,7 +31,7 @@ title: Jailbreak pattern detected
 id: pi-002
 status: experimental
 description: Detects common jailbreak and guardrail bypass attempts
-priority: critical
+priority: high
 logsource:
   product: parallax
   service: message

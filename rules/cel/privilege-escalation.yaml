@@ -8,7 +8,7 @@
   description: Blocks privilege escalation via sudo command
   expr: 'tool_name == "exec" && tool_args_command.matches("^sudo\\s")'
   action: block
-  priority: critical
+  priority: high
   reason: Privilege escalation via sudo is not allowed
 
 - id: cel-pe-002
@@ -16,7 +16,7 @@
   description: Blocks switching to another user via su command
   expr: 'tool_name == "exec" && tool_args_command.matches("^su\\s+-|^su\\s+root")'
   action: block
-  priority: critical
+  priority: high
   reason: Switching to another user is not allowed
 
 - id: cel-pe-003
@@ -24,7 +24,7 @@
   description: Blocks privilege escalation via pkexec
   expr: 'tool_name == "exec" && tool_args_command.contains("pkexec")'
   action: block
-  priority: critical
+  priority: high
   reason: Privilege escalation via pkexec is not allowed
 
 - id: cel-pe-004
@@ -32,7 +32,7 @@
   description: Blocks privilege escalation via doas command
   expr: 'tool_name == "exec" && tool_args_command.matches("^doas\\s")'
   action: block
-  priority: critical
+  priority: high
   reason: Privilege escalation via doas is not allowed
 
 - id: cel-pe-005
@@ -40,7 +40,7 @@
   description: Blocks changing file ownership to root
   expr: 'tool_name == "exec" && tool_args_command.matches("chown\\s+root")'
   action: block
-  priority: critical
+  priority: high
   reason: Changing file ownership to root is not allowed
 
 - id: cel-pe-006
@@ -48,7 +48,7 @@
   description: Blocks setting the setuid bit on files
   expr: 'tool_name == "exec" && tool_args_command.contains("chmod u+s")'
   action: block
-  priority: critical
+  priority: high
   reason: Setting setuid bit is not allowed
 
 - id: cel-pe-007
@@ -56,5 +56,5 @@
   description: Blocks modifying the sudoers configuration
   expr: 'tool_name == "exec" && (tool_args_command.contains("visudo") || tool_args_command.contains("/etc/sudoers"))'
   action: block
-  priority: critical
+  priority: high
   reason: Modifying sudoers configuration is not allowed

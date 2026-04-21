@@ -2,7 +2,7 @@ title: Suspicious file write outside workspace
 id: dt-001
 status: experimental
 description: Detects tool calls that write files to sensitive system directories
-priority: critical
+priority: high
 logsource:
   product: parallax
   service: tool
@@ -24,7 +24,7 @@ title: Shell command with network exfiltration indicators
 id: dt-002
 status: experimental
 description: Detects exec tool calls that combine data access with network transfer
-priority: critical
+priority: high
 logsource:
   product: parallax
   service: tool
@@ -50,7 +50,7 @@ title: Database credential access via tool
 id: dt-003
 status: experimental
 description: Detects tool calls that read database configuration or credential files
-priority: critical
+priority: high
 logsource:
   product: parallax
   service: tool

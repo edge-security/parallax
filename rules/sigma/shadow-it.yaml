@@ -48,7 +48,7 @@ title: Cloud infrastructure provisioning
 id: shadow-003
 status: experimental
 description: Detects agent provisioning or modifying cloud infrastructure
-priority: critical
+priority: high
 logsource:
   product: parallax
   service: tool

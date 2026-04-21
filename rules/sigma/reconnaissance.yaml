@@ -2,7 +2,7 @@ title: Sensitive file read - credentials and keys
 id: recon-001
 status: experimental
 description: Detects tool calls reading credential files, SSH keys, or secret stores
-priority: critical
+priority: high
 logsource:
   product: parallax
   service: tool
@@ -67,7 +67,7 @@ title: Cloud metadata endpoint access
 id: recon-003
 status: experimental
 description: Detects access to cloud instance metadata services used for credential theft
-priority: critical
+priority: high
 logsource:
   product: parallax
   service: tool
