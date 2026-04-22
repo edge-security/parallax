@@ -25,30 +25,35 @@ Every event passes through a chain of evaluators. Each evaluator checks the even
 
 ## Quick Start
 
-### Build from source
+### 1. Get the binary
+
+**Option A — Download a release** (fastest)
+
+Grab a pre-built binary for your platform from [GitHub Releases](https://github.com/agent-defense/parallax/releases/latest).
+
+**Option B — Build from source**
 
 ```bash
-git clone https://github.com/agentic-defense/parallax
+git clone https://github.com/agent-defense/parallax
 cd parallax
-sudo snap install --classic rustup
-rustup default stable
-sudo apt install pkg-config libssl-dev
 cargo build --release
 ```
 
-### Configure with OpenClaw
+Requires [Rust](https://rustup.rs/) 1.70+. No other dependencies.
+
+### 2. Start the server
 
 ```bash
-# Deploy the OpenClaw integration (server mode)
-openclaw plugins install --dangerously-force-unsafe-install --link ./integrations/openclaw
-openclaw plugins enable parallax-security
-openclaw gateway restart
-
-# Start the Parallax server
-./target/release/parallax serve -c config.yaml
+./parallax serve
 ```
 
-### Test the evaluation endpoint
+This auto-discovers `parallax.yaml` (the starter config with essential rules). For the full 51-rule set:
+
+```bash
+./parallax serve -c config.yaml
+```
+
+### 3. Test it
 
 ```bash
 curl http://127.0.0.1:9920/health
@@ -60,6 +65,26 @@ curl -X POST http://127.0.0.1:9920/evaluate \
 ```
 
 Your agent calls `POST /evaluate` before and after each tool execution and acts on the decision.
+
+### 4. Connect to OpenClaw (optional)
+
+**Proxy mode** — route all LLM traffic through Parallax automatically:
+
+```bash
+parallax setup --framework openclaw
+parallax serve --mode proxy -c config.yaml
+```
+
+**Server mode** — use the OpenClaw plugin to forward lifecycle events:
+
+```bash
+openclaw plugins install --link ./integrations/openclaw
+openclaw plugins enable parallax-security
+openclaw gateway restart
+parallax serve -c config.yaml
+```
+
+See [docs/integrations/openclaw.md](docs/integrations/openclaw.md) for full details. For other frameworks, see [Agent Framework Integrations](#agent-framework-integrations).
 
 ## Supported Threat Categories
 

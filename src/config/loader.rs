@@ -38,7 +38,10 @@ pub fn find_config(path: Option<&str>) -> Result<PathBuf, String> {
     }
 
     Err(format!(
-        "No config file found. Tried: {}",
+        "No config file found in the current directory.\n\
+         Searched for: {}\n\n\
+         To get started, run from the parallax repo directory or specify a config path:\n  \
+         parallax serve -c /path/to/config.yaml",
         DEFAULT_CONFIG_PATHS.join(", ")
     ))
 }
