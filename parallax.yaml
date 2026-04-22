@@ -1,0 +1,59 @@
+# Parallax Starter Configuration
+# ===============================
+# Essential rules only — enough to block dangerous commands and redact secrets.
+# For the full 51-rule set covering 13 threat categories, use config.yaml.
+
+server:
+  host: "127.0.0.1"
+  port: 9920
+
+# Uncomment to configure proxy mode upstream provider:
+# proxy:
+#   provider: anthropic    # anthropic, openai, gemini, or custom
+#   upstream_url: ~        # override for custom providers
+
+reporting:
+  log_file: ./logs/audit.jsonl
+
+evaluators:
+  - name: secrets-scanner
+    type: regex
+    stages: [tool.before, tool.after]
+    rules:
+      - id: regex-sec-001
+        title: AWS Access Key
+        description: Detects AWS access key IDs starting with AKIA
+        pattern: "AKIA[0-9A-Z]{16}"
+        action: redact
+      - id: regex-sec-003
+        title: GitHub PAT
+        description: Detects GitHub personal access tokens (classic format)
+        pattern: "ghp_[A-Za-z0-9]{36}"
+        action: redact
+      - id: regex-sec-006
+        title: Private Key Block
+        description: Detects PEM-encoded private key blocks
+        pattern: "-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----"
+        action: block
+
+  - name: dangerous-commands
+    type: regex
+    stages: [tool.before]
+    rules:
+      - id: regex-cmd-001
+        title: Recursive delete
+        description: Blocks recursive deletion of root filesystem
+        pattern: "rm\\s+-[a-zA-Z]*r[a-zA-Z]*f[a-zA-Z]*\\s+/"
+        action: block
+        fields: [tool_args.command]
+      - id: regex-cmd-005
+        title: Curl pipe to shell
+        description: Blocks piping curl output directly to a shell interpreter
+        pattern: "curl\\s+.*\\|\\s*(bash|sh|zsh)"
+        action: block
+        fields: [tool_args.command]
+
+  - name: sigma-threats
+    type: sigma
+    stages: [message.before, tool.before, tool.after]
+    rules_dir: ./rules/sigma
