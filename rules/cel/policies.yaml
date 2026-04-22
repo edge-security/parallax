@@ -20,7 +20,7 @@
   reason: Setting world-writable permissions is not allowed
 
 - id: cel-pol-003
-  title: Warn on sudo usage
+  title: Detect sudo usage
   description: Detects elevated privilege execution via sudo
   expr: 'tool_name == "exec" && tool_args_command.startsWith("sudo")'
   action: detect
@@ -28,7 +28,7 @@
   reason: Elevated privilege execution detected
 
 - id: cel-pol-004
-  title: Warn environment variable dump
+  title: Detect environment variable dump
   description: Detects environment variable dumps that may expose secrets
   expr: 'tool_name == "exec" && (tool_args_command == "env" || tool_args_command == "printenv" || tool_args_command.contains("export"))'
   action: detect
