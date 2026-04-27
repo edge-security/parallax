@@ -8,6 +8,7 @@
   description: Detects attempts to modify the system prompt through tool calls
   expr: 'tool_args_command.contains("system_prompt") || tool_args_command.contains("system_message")'
   action: block
+  priority: high
   reason: Modifying system prompt via tool calls is not allowed
 
 - id: cel-mm-002
@@ -15,6 +16,7 @@
   description: Detects attempts to modify the model temperature parameter
   expr: 'tool_args_command.contains("temperature") && tool_args_command.matches("temperature.*(=|:)\\s*[0-9]")'
   action: detect
+  priority: medium
   reason: Attempt to modify model temperature parameter detected
 
 - id: cel-mm-003
@@ -22,6 +24,7 @@
   description: Detects attempts to modify or redefine available tool definitions
   expr: 'tool_args_command.contains("tool_definitions") || tool_args_command.contains("\"tools\"")'
   action: detect
+  priority: medium
   reason: Attempt to modify tool definitions detected
 
 - id: cel-mm-004
@@ -29,4 +32,5 @@
   description: Detects attempts to modify the max_tokens parameter
   expr: 'tool_args_command.contains("max_tokens") && tool_args_command.matches("max_tokens.*(=|:)\\s*[0-9]")'
   action: detect
+  priority: low
   reason: Attempt to modify max_tokens parameter detected
